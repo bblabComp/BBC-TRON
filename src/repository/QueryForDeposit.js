@@ -3,7 +3,6 @@ var Deposit = require('../../model/Deposit');
 exports.postDeposit = (item) => {
     if(item!=null){
         new Deposit({
-            id : item.id,
             fromAddress : item.fromAddress,
             toAddress : item.toAddress,
             privateKey : item.privateKey,

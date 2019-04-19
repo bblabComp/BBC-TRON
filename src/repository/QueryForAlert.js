@@ -1,4 +1,4 @@
-const alert = require("../model/Alert");
+const alert = require("../../model/AppServerAlert");
 
 exports.fetchData = (data) => {
     return new Promise((resolve, reject) => {
@@ -32,7 +32,7 @@ exports.fetchDataHandler = (req, res) => {
 
 exports.postItem = (req, res) => {
     new alert({
-        id:1,
+        serverName:req.body.serverName,
         status:req.body.status,
         sendTo:req.body.sendTo,
         createdAt: new Date(),

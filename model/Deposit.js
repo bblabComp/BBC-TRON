@@ -3,7 +3,6 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var deposit = new Schema({
-    id : Number,
     fromAddress : String,
     toAddress : String,
     privateKey : String,
