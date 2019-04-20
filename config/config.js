@@ -1,6 +1,6 @@
 const config = {
     baseUrl:'http://localhost',
-    MONGO_URI: "mongodb://tron:tron123@192.168.99.100:27017/tronSyncing",
+    MONGO_URI: "mongodb://tron:tron123@localhost:27017/tron",
     PORT: 9001,
     // SOLLYDITY_NODE: "https://api.trongrid.io",
     FULL_NODE: "https://api.shasta.trongrid.io",

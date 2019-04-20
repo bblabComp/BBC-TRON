@@ -1,5 +1,6 @@
 var Block = require('../../model/Block');
 const TronWeb = require("tronweb");
+var config = require("../../config/config"); 
 
 const tronweb = new TronWeb(
     config.FULL_NODE,
@@ -9,7 +10,7 @@ const tronweb = new TronWeb(
 
 exports.getDbNowBlock = () => {
     return new Promise((resolve, reject) => {
-        Block.find((err, item) => {
+        Block.find({}, (err, item) => {
             if(err){
                 reject({
                     success: false,
@@ -35,14 +36,13 @@ exports.getDbNowBlock = () => {
                 });
             }
         }).sort({$natural: -1})
-        .limit(1)
-        .next();
+        .limit(1);
     });
 }
 
-exports.fetchNowBlockNum = (req, res) => {
-    return this.getDbNowBlock().then(response => { 
-        return response.data.blockNum;
+exports.fetchNowBlockNum = () => {
+    return this.getDbNowBlock().then((response) => { 
+        return response.data[0].blockNum;
     }).catch(error => {
         console.log(error);
     });
@@ -56,7 +56,10 @@ exports.postNowBlock = (item) => {
             createdAt: new Date(),
             lastModified: new Date()
         }).save((err, res) => {
-            if(err) throw err;
+            
+            if(err){
+                console.log('get some error', err);
+            } 
             return res;
         });
     } 

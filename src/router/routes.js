@@ -1,6 +1,7 @@
 const express = require('express');
 var query = require("../repository/QueryForAlert");
 var QueryForDeposit = require('../repository/QueryForDeposit');
+var QueryForWalletAddress = require('../repository/QueryForWalletAddress')
 const router = express.Router();
 const config = require("../../config/config");
 
@@ -47,12 +48,20 @@ router.get('/nowBlock', function(req, res){
 */
 router.get('/create/address', (req, res) => {
     tronweb.createAccount().then(response => {
+        var item = {
+            address : response.address.base58,
+            privateKey : response.privateKey,
+            publicKey : response.publicKey,
+            createAt : new Date(),
+            lastModified : new Date()
+        }
+        QueryForWalletAddress.postCreateAddressInfo(item);
         res.send(response)
     }).catch(error => {
         var returnObject = {
             message:'Something goes worng'
         }
-        res.json(JSON.parse(returnObject));  
+        res.json(returnObject);  
     });
 });
 

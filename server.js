@@ -5,7 +5,8 @@ var axios = require('axios');
 var bodyParser = require("body-parser");
 var config = require("./config/config");
 var routes = require("./src/router/routes");
-var queryForBlockNum = require('./src/repository/QueryForBlock.js')
+var queryForBlockNum = require('./src/repository/QueryForBlock.js');
+var queryForAddress = require('./src/repository/QueryForWalletAddress.js')
 var TronWeb = require("tronweb");
 
 const tronweb = new TronWeb(
@@ -35,10 +36,6 @@ mongoose.connect(config.MONGO_URI, function(err){
     else console.log("connection successfully");
 })
 
-app.listen(config.PORT, function(){
-    console.log('Application listing on port', config.PORT);
-})
-
 /**
  * Set Interval for saving incoming transaction
  * @First - fetch current blockNum from tron server
@@ -48,24 +45,40 @@ app.listen(config.PORT, function(){
  */
 setInterval(function(){
     tronweb.trx.getCurrentBlock().then(item => {
-        let blockNumInDb = queryForBlockNum.fetchNowBlockNum();
-        var blockDiff = item.block_header.raw_data.number - blockNumInDb;
-        if(blockDiff > 0){
-            for(let i = 1; i <= blockDiff; i++){
-                let processBlockNum = blockNumInDb + i; 
-                tronweb.trx.getBlock(processBlockNum).then(res => {
-                    for(let key in res.transactions){
-                        if(res.transactions[key].raw_data.contract[0].type==='TransferContract'){
-                            incomingTransaction(res.transactions[key].txID, res.transactions[key].raw_data);
+
+        //Fetch Last processing block from database
+        queryForBlockNum.fetchNowBlockNum().then((blockNumInDb) => {
+            var blockDiff = item.block_header.raw_data.number - blockNumInDb;
+            if(blockDiff > 0){
+                for(let i = 1; i <= blockDiff; i++){
+                    let processBlockNum = blockNumInDb + i; 
+
+                    //Fetching Block Information to check the block is for our address or not
+                    tronweb.trx.getBlock(processBlockNum).then(res => {
+                        for(let key in res.transactions){
+                            if(res.transactions[key].raw_data.contract[0].type === 'TransferContract'){
+
+                                //Check the address is present in database or not
+                                queryForAddress.findAddress(res.transactions[key].raw_data.contract[0]).then(result => {
+                                    if(result == true){
+                                        incomingTransaction(res.transactions[key].txID, res.transactions[key].raw_data);
+                                    }
+                                }).catch(err => {
+                                    console.log('Something goes Wrong', err)
+                                })
+                            }
                         }
-                    }
-                }).catch(err => {
-                    console.log(err)
-                });
+                    }).catch(err => {
+                        console.log(err)
+                    });
+                }
+                //save block number
+                saveNowBlock(item.block_header.raw_data.number);
             }
-        }
-        //save block number
-        this.saveNowBlock(item.block_header.raw_data.number);
+        }).catch((error) => {
+            console.log('error list', error);
+        });
+        
     }).catch(err => {
         console.log('something goes worng', err);
     });   
@@ -105,5 +118,11 @@ function saveNowBlock(nowBlockNum){
     }
     queryForBlockNum.postNowBlock(blockModel);
 }
+
+
+//Port to access the api
+app.listen(config.PORT, function(){
+    console.log('Application listing on port', config.PORT);
+})
 
 module.exports = app;
