@@ -5,8 +5,9 @@ var Schema = mongoose.Schema;
 var deposit = new Schema({
     fromAddress : String,
     toAddress : String,
-    privateKey : String,
-    hexAddress : String,
+    amount : Number,
+    blockNum : Number,
+    tranId : String,
     status : ['PENDING', 'COMPLETED'],
     createdAt: Date,
     lastModified: Date

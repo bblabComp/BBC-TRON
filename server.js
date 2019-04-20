@@ -5,8 +5,10 @@ var axios = require('axios');
 var bodyParser = require("body-parser");
 var config = require("./config/config");
 var routes = require("./src/router/routes");
+var emailService = require('./src/service/emailService.js')
 var queryForBlockNum = require('./src/repository/QueryForBlock.js');
 var queryForAddress = require('./src/repository/QueryForWalletAddress.js')
+var queryForDeposit = require('./src/repository/QueryForDeposit.js')
 var TronWeb = require("tronweb");
 
 const tronweb = new TronWeb(
@@ -91,17 +93,27 @@ setInterval(function(){
 * @request (to do this, use command to install- npm install request@2.81.0)
 * 
 */
-function incomingTransaction(txID, raw_data){
+function incomingTransaction(blockNum, txID, raw_data){
     axios.post(config.MAIN_URL+'/incomingTransaction', {
         transactionId : txID,
         raw_data : raw_data
     }).then((res) => {
-        //doing mailing process when response === success
+        if(res != null){
+            emailService.onSuccessTransaction(res.data);
+        }
     }).catch((err) => {
-        //mail when app server not in sync
-        //save incoming transaction in mongo db for leter process.
-        //
-        console.log('something goes worng', err);
+        emailService.onServerDown();
+        var tranInfo = {
+            fromAddress : tronweb.address.fromHex(raw_data.contract[0].parameter.value.owner_address),
+            toAddress : tronweb.address.fromHex(raw_data.contract[0].parameter.value.to_address),
+            amount : tronweb.address.fromHex(raw_data.contract[0].parameter.value.amount),
+            blockNum : blockNum,
+            tranId : txID,
+            status : 'PENDING',
+            createdAt: new Date(),
+            lastModified: new Date()
+        }
+        queryForDeposit.postDeposit(item);
     })
 }
 
