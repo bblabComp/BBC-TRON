@@ -1,3 +1,7 @@
+/**
+ * @author Nitesh kumar
+ */
+
 var Block = require('../../model/Block');
 const TronWeb = require("tronweb");
 var config = require("../../config/config"); 
@@ -8,6 +12,10 @@ const tronweb = new TronWeb(
     config.EVENT_SERVER
 );
 
+/**
+ * @Desc - Get The last block we had processed.
+ * 
+ */
 exports.getDbNowBlock = () => {
     return new Promise((resolve, reject) => {
         Block.find({}, (err, item) => {
@@ -17,17 +25,22 @@ exports.getDbNowBlock = () => {
                     msg: "Something went wrong"
                 });
             }else if(item == null || item.length == 0){
-                var firstBlock = {
-                    id : item.id,
-                    blockNum:tronweb.trx.getCurrentBlock(),
-                    status : 'PROCESSED',
-                }
-                this.postNowBlock(item);
-                resolve({
-                    success: true,
-                    msg: "alert Status",
-                    data:firstBlock
-                })
+                
+                tronweb.trx.getCurrentBlock().then(nowBlock => {
+                    var firstBlock = {
+                        id : item.id,
+                        blockNum: nowBlock.block_header.raw_data.number,
+                        status : 'PROCESSED',
+                    }
+                    this.postNowBlock(firstBlock);
+                    resolve({
+                        success: true,
+                        msg: "alert Status",
+                        data:firstBlock
+                    })
+                }).catch(err => {
+                    console.log(err);
+                });
             }else{
                 resolve({
                     success: true,
@@ -47,6 +60,48 @@ exports.fetchNowBlockNum = () => {
         console.log(error);
     });
 }
+/**---------------------------------------------------------------------------------------- */
+
+/**
+ * @Description - Update the Document whenever new block is added in the tron network.
+ */
+updateBlockNumInDb = (currentBlockNum, prevBlockNum) => {
+    return new Promise((resolve, reject) => {
+        Block.updateOne({
+            "blockNum" : prevBlockNum
+        }, { 
+            $set: {
+                "blockNum": currentBlockNum,
+                "lastModified": new Date()
+            }
+        }, function(err, results){
+            if(err) throw err;
+            if(results!=null){
+                resolve({
+                    success: true,
+                    msg: "Update Successfully",
+                    data:results
+                })
+            }else{
+                reject({
+                    success: false,
+                    msg: "Something goes Wrong"
+                });
+            }
+        });
+    });
+}
+
+exports.updateBlockNum = (currentBlockNum, preBlockNum) => {
+    return updateBlockNumInDb(currentBlockNum, preBlockNum).then(item => {
+        if(item != null){
+            console.log('-----------------------');
+            console.log('Update Current Block to ', currentBlockNum);
+            return true;
+        }
+    })
+}
+/**---------------------------------------------------------------------------------------------------------------- */
 
 exports.postNowBlock = (item) => {
     if(item!=null){
@@ -59,7 +114,9 @@ exports.postNowBlock = (item) => {
             
             if(err){
                 console.log('get some error', err);
-            } 
+            }
+            console.log('-------------------------------------')
+            console.log('Insert now block', res.blockNum); 
             return res;
         });
     } 

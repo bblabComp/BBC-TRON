@@ -19,7 +19,7 @@ findByWalletAddress = (address) => {
 
 exports.findAddress = (address) => {
     return findByWalletAddress(address).then((element) => {
-        if(element != null){
+        if(element.data.length > 0){
             return true;
         }else{
             return false;

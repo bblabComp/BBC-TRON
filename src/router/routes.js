@@ -106,6 +106,7 @@ router.get('/wallet/balance', (req, res) =>{
  */
 router.post('/withdrawalTrx', (req, res) => {
     tronweb.trx.sendTransaction(req.body.to, req.body.amount, req.body.privateKey).then(response => {
+        console.log('---', req.body.privateKey);
         res.json(response);
     }).catch(error => {
         console.log(error);
@@ -123,7 +124,7 @@ router.get('/testing', (req, res) => {
             }
         }
         res.json(item);
-    }).catch(err=>{
+    }).catch(err => {
         console.log("------", err);
     })
 });

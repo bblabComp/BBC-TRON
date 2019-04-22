@@ -1,3 +1,7 @@
+/**
+ * @author Nitesh kumar
+ */
+
 var express = require("express");
 var mongoose = require("mongoose");
 var axios = require('axios');
@@ -48,9 +52,14 @@ mongoose.connect(config.MONGO_URI, function(err){
 setInterval(function(){
     tronweb.trx.getCurrentBlock().then(item => {
 
+        console.log("Block Number on Tron Network ", item.block_header.raw_data.number)
         //Fetch Last processing block from database
         queryForBlockNum.fetchNowBlockNum().then((blockNumInDb) => {
+
+            console.log("Block Number in Database ", blockNumInDb)
             var blockDiff = item.block_header.raw_data.number - blockNumInDb;
+
+            console.log('Number of Block to Sync ', blockDiff)
             if(blockDiff > 0){
                 for(let i = 1; i <= blockDiff; i++){
                     let processBlockNum = blockNumInDb + i; 
@@ -60,10 +69,11 @@ setInterval(function(){
                         for(let key in res.transactions){
                             if(res.transactions[key].raw_data.contract[0].type === 'TransferContract'){
 
+                                let address = tronweb.address.fromHex(res.transactions[key].raw_data.contract[0].parameter.value.owner_address);
                                 //Check the address is present in database or not
-                                queryForAddress.findAddress(res.transactions[key].raw_data.contract[0]).then(result => {
+                                queryForAddress.findAddress(address).then(result => {
                                     if(result == true){
-                                        incomingTransaction(res.transactions[key].txID, res.transactions[key].raw_data);
+                                        incomingTransaction(processBlockNum, res.transactions[key].txID, res.transactions[key].raw_data);
                                     }
                                 }).catch(err => {
                                     console.log('Something goes Wrong', err)
@@ -71,11 +81,11 @@ setInterval(function(){
                             }
                         }
                     }).catch(err => {
-                        console.log(err)
+                        console.log("error caught in get block infor ", err)
                     });
                 }
                 //save block number
-                saveNowBlock(item.block_header.raw_data.number);
+                saveNowBlock(item.block_header.raw_data.number, blockNumInDb);
             }
         }).catch((error) => {
             console.log('error list', error);
@@ -106,29 +116,27 @@ function incomingTransaction(blockNum, txID, raw_data){
         var tranInfo = {
             fromAddress : tronweb.address.fromHex(raw_data.contract[0].parameter.value.owner_address),
             toAddress : tronweb.address.fromHex(raw_data.contract[0].parameter.value.to_address),
-            amount : tronweb.address.fromHex(raw_data.contract[0].parameter.value.amount),
+            amount : raw_data.contract[0].parameter.value.amount,
             blockNum : blockNum,
             tranId : txID,
             status : 'PENDING',
             createdAt: new Date(),
             lastModified: new Date()
         }
-        queryForDeposit.postDeposit(item);
+        queryForDeposit.postDeposit(tranInfo);
     })
 }
 
 /**
- * @Save The currenct block of tron in database
+ * @Update The currenct block of tron in database
  */
-function saveNowBlock(nowBlockNum){
+function saveNowBlock(nowBlockNum, prevBlockNum){
     //save now block in db ;
-    var blockModel = {
-        blockNum:nowBlockNum,
-        status:'PROCESSED',
-        createdAt: new Date(),
-        lastModified: new Date()
-    }
-    queryForBlockNum.postNowBlock(blockModel);
+    queryForBlockNum.updateBlockNum(nowBlockNum, prevBlockNum).then(result => {
+        console.log('-----------------------');
+    }).catch(error => {
+
+    });
 }
 
 
