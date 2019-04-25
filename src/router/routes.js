@@ -129,6 +129,15 @@ router.get('/testing', (req, res) => {
     })
 });
 
+/**
+ * @Monitoring - Check the server is up or not;
+ */
+router.get('/health', (req, res) => {
+    var responseObject = {
+        status : "UP"
+    }
+    res.json(responseObject);
+})
 
 
 module.exports = router;
