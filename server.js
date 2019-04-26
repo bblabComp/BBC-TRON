@@ -5,11 +5,12 @@
 var express = require("express");
 var mongoose = require("mongoose");
 var axios = require('axios');
+var http = require('http');
 
 var bodyParser = require("body-parser");
 var config = require("./config/config");
 var routes = require("./src/router/routes");
-var emailService = require('./src/service/emailService.js')
+var doTemplating = require('./src/service/doTemplating')
 var queryForBlockNum = require('./src/repository/QueryForBlock.js');
 var queryForAddress = require('./src/repository/QueryForWalletAddress.js')
 var queryForDeposit = require('./src/repository/QueryForDeposit.js')
@@ -112,7 +113,7 @@ function incomingTransaction(blockNum, txID, raw_data){
             emailService.onSuccessTransaction(res.data);
         }
     }).catch((err) => {
-        emailService.onServerDown();
+        doTemplating.loadTemplate();
         var tranInfo = {
             fromAddress : tronweb.address.fromHex(raw_data.contract[0].parameter.value.owner_address),
             toAddress : tronweb.address.fromHex(raw_data.contract[0].parameter.value.to_address),
@@ -139,10 +140,9 @@ function saveNowBlock(nowBlockNum, prevBlockNum){
     });
 }
 
-
 //Port to access the api
-app.listen(config.PORT, function(){
+http.createServer(app).listen(config.PORT, function(){
     console.log('Application listing on port', config.PORT);
-})
+});
 
 module.exports = app;
