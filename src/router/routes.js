@@ -13,15 +13,6 @@ const tronweb = new TronWeb(
     config.EVENT_SERVER
 );
 
-router.get('/email-alert', function(req, res){
-    query.fetchDataHandler(req, res);
-});
-
-router.post('/alert', function(req, res){
-    console.log("in post call")
-    query.postItem(req, res);
-})
-
 /**
  * @returns current block of tron main server
  * @param : non
@@ -81,7 +72,7 @@ router.get('/account', (req, res) => {
  * @Balance : To check the balance in wallet
  * @Param : need Address
  */
-router.get('/wallet/balance', (req, res) =>{
+router.get('/balance', (req, res) =>{
     tronweb.trx.getBalance(req.body.address).then(response => {
         var resObject = {
             result:'OK',
@@ -112,6 +103,14 @@ router.post('/withdrawalTrx', (req, res) => {
         console.log(error);
     })
 })
+
+/**
+ * @Pending :::: Get all pending transaction 
+ */
+router.get('/pending/transaction', (req, res) => {
+    QueryForDeposit.getPendingTransaction(req, res);
+});
+
 
 
 router.get('/testing', (req, res) => {
