@@ -2,7 +2,7 @@
  * @author Nitesh kumar
  */
 
-var Block = require('../../model/Block');
+var Block = require('../../model/SyncBlock');
 const TronWeb = require("tronweb");
 var config = require("../../config/config"); 
 
@@ -30,7 +30,7 @@ exports.getDbNowBlock = () => {
                     var firstBlock = {
                         id : item.id,
                         blockNum: nowBlock.block_header.raw_data.number,
-                        status : 'PROCESSED',
+                        status : 'DONE',
                     }
                     this.postNowBlock(firstBlock);
                     resolve({

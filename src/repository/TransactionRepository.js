@@ -1,4 +1,4 @@
-var Deposit = require('../../model/Deposit');
+var Deposit = require('../../model/Transaction');
 
 exports.postDeposit = (item) => {
     new Deposit({

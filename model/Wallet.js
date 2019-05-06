@@ -2,12 +2,14 @@ var mongoose = require('mongoose');
 
 var Schema = mongoose.Schema;
 
-var walletAddress = new Schema({
-    address : String,
+var wallet = new Schema({
+    base58address : String,
+    hexAddress : String,
     privateKey : String,
     publicKey : String,
+    walletType : ['MAIN','USER'],
     createAt : Date,
     lastModified : Date
 });
 
-module.exports = mongoose.model("walletAddress", walletAddress);   
+module.exports = mongoose.model("wallet", wallet);   

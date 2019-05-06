@@ -19,3 +19,7 @@ exports.loadTemplate = () => {
         console.log('Yay!');
     })
 }
+
+exports.sendTransactionSuccessAlert = () => {
+    
+}

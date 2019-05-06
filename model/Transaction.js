@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 
 var Schema = mongoose.Schema;
 
-var deposit = new Schema({
+var transaction = new Schema({
     fromAddress : String,
     toAddress : String,
     amount : Number,
@@ -13,4 +13,4 @@ var deposit = new Schema({
     lastModified: Date
 });
 
-module.exports = mongoose.model('deposit', deposit);
+module.exports = mongoose.model('transaction', transaction);

@@ -1,4 +1,4 @@
-const alert = require("../../model/AppServerAlert");
+const alert = require("../../model/AppStatus");
 
 exports.fetchData = (data) => {
     return new Promise((resolve, reject) => {

@@ -1,8 +1,8 @@
-var WalletAddress = require('../../model/WalletAdress');
+var WalletAddress = require('../../model/Wallet');
 
-findByWalletAddress = (address) => {
+exports.findByWalletAddress = (address) => {
     return new Promise((resolve, reject) => {
-        WalletAddress.find({address : address}, (err, item) => {
+        WalletAddress.findOne({base58address : address}, (err, item) => {
             if(err){
                 reject({
                     success: false,
@@ -18,12 +18,8 @@ findByWalletAddress = (address) => {
 }
 
 exports.findAddress = (address) => {
-    return findByWalletAddress(address).then((element) => {
-        if(element.data.length > 0){
-            return true;
-        }else{
-            return false;
-        }
+    return this.findByWalletAddress(address).then((element) => {
+        return element;
     }).catch((err) => {
         console.log('something worng in find by wallet address', err);
     })
@@ -31,9 +27,11 @@ exports.findAddress = (address) => {
 
 exports.postCreateAddressInfo = (reqBody) => {
     new WalletAddress({
-        address : reqBody.address,
+        base58address : reqBody.address,
+        hexAddress : reqBody.hexAddress,
         privateKey : reqBody.privateKey,
         publicKey : reqBody.publicKey,
+        walletType : reqBody.walletType,
         createAt : reqBody.createAt,
         lastModified : reqBody.lastModified
     }).save((err, res) => {
