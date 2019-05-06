@@ -97,6 +97,7 @@ setInterval(function(){
                         }
                     }).catch(err => {
                         console.log("something goes worng to find block information ::: ", err);
+                        processBlockNum = processBlockNum - 1;
                         break;
                     });
                 }
