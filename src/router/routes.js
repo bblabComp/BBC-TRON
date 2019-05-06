@@ -143,6 +143,14 @@ router.get('/pending/transaction', (req, res) => {
 });
 
 /**
+ * @Update ::: update all the pending transaction to confirmed if it calls
+ */
+router.post('/update/transaction', (req, res) => {
+    console.log('in update method', req.body._id);
+    QueryForDeposit.updateTransaction(req, res);
+})
+
+/**
  * @Validate :::: To check address is correct or not.
  */
 router.post('/validate/address', (req, res) => {

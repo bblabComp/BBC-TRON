@@ -17,6 +17,22 @@ exports.postDeposit = (item) => {
     
 }
 
+exports.updateTransaction = (req, res) => {
+    Deposit.updateOne({
+        '_id': req.body._id
+    }, {
+        $set :{
+            'status':'CONFIRMED'
+        }
+    }, function(err, result){
+        var resBody = {
+            result: true,
+            message: 'update successfully'
+        }
+        res.json(resBody);
+    })
+}
+
 exports.getTransaction = () => {
     return new Promise((resolve, reject) => {
         Deposit.find({status : 'PENDING'}, (err, item) => {
