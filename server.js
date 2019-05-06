@@ -61,8 +61,9 @@ setInterval(function(){
             console.log('Number of Block to Sync ', blockDiff)
             
             if(blockDiff > 0){
+                let processBlockNum;
                 for(let i = 1; i <= blockDiff; i++){
-                    let processBlockNum = blockNumInDb + i; 
+                    processBlockNum = blockNumInDb + i; 
 
                     //Fetching Block Information to check the block is for our address or not
                     tronweb.trx.getBlock(processBlockNum).then(res => {
@@ -95,13 +96,12 @@ setInterval(function(){
                             }
                         }
                     }).catch(err => {
-                        //save block number
-                        saveNowBlock(processBlockNum - 1, blockNumInDb);
                         console.log("something goes worng to find block information ::: ", err);
+                        break;
                     });
                 }
                 //save block number
-                saveNowBlock(item.block_header.raw_data.number, blockNumInDb);
+                saveNowBlock(processBlockNum, blockNumInDb);
             }
         }).catch((error) => {
             console.log('something goes wrong during fetch current block from database ::: ', error);
