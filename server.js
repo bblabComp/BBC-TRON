@@ -95,6 +95,8 @@ setInterval(function(){
                             }
                         }
                     }).catch(err => {
+                        //save block number
+                        saveNowBlock(processBlockNum - 1, blockNumInDb);
                         console.log("something goes worng to find block information ::: ", err);
                     });
                 }
