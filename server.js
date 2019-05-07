@@ -47,7 +47,7 @@ mongoose.connect(config.MONGO_URI, function(err){
  * 
  * @Funtionality = fetch all the transaction and save or update our wallets 
  */
-setInterval(async function(){
+setInterval(async () => {
     await tronweb.trx.getCurrentBlock().then(item => {
             console.log("Blockchain Height on Tron Network ", item.block_header.raw_data.number)
             //Fetch Last processing block from database
