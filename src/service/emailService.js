@@ -15,7 +15,7 @@ exports.onServerDown = (result) => {
     return Transporter.sendMail({
         from : 'nitesh.kumar@bblab.biz',
         to : result.context.email,
-        subject : 'For Testing',
+        subject : result.context.subject,
         html : result.email.html
     });
 }

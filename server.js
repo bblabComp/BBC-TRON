@@ -132,8 +132,6 @@ function incomingTransaction(transactionBody){
             console.log('deposit tron amount to the user wallet ::::');
         }
     }).catch((err) => {
-
-        console.log("in error :::", err);
         var tranInfo = {
             fromAddress : transactionBody.owner_address,
             toAddress : transactionBody.toAddress,
