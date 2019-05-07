@@ -1,9 +1,10 @@
 const express = require('express');
-var query = require("../repository/QueryForAlert");
-var QueryForDeposit = require('../repository/QueryForDeposit');
-var QueryForWalletAddress = require('../repository/QueryForWalletAddress')
+var query = require("../repository/AppStatusRepository");
+var QueryForDeposit = require('../repository/TransactionRepository');
+var QueryForWalletAddress = require('../repository/WalletRepository')
 const router = express.Router();
-const config = require("../../config/config");
+const config = require("../../config/"+process.env.ENV_CONFIG);
+const axios = require('axios');
 
 const TronWeb = require("tronweb");
 
@@ -32,17 +33,47 @@ router.get('/nowBlock', function(req, res){
 
 /**
 *
-* This API is used for creating Address
+* This API is used for creating Address for user
 * createAccount() function return promise.......
 * @return = json object with 
             Private key, Public key, address
 */
-router.get('/create/address', (req, res) => {
+router.get('/create/user/address', (req, res) => {
     tronweb.createAccount().then(response => {
         var item = {
             address : response.address.base58,
+            hexAddress : response.address.hex,
             privateKey : response.privateKey,
             publicKey : response.publicKey,
+            walletType : 'USER',
+            createAt : new Date(),
+            lastModified : new Date()
+        }
+        QueryForWalletAddress.postCreateAddressInfo(item);
+        res.send(response)
+    }).catch(error => {
+        var returnObject = {
+            message:'Something goes worng'
+        }
+        res.json(returnObject);  
+    });
+});
+
+/**
+*
+* This API is used for creating Address for organization
+* createAccount() function return promise.......
+* @return = json object with 
+            Private key, Public key, address
+*/
+router.get('/create/organization/address', (req, res) => {
+    tronweb.createAccount().then(response => {
+        var item = {
+            address : response.address.base58,
+            hexAddress : response.address.hex,
+            privateKey : response.privateKey,
+            publicKey : response.publicKey,
+            walletType : 'MAIN',
             createAt : new Date(),
             lastModified : new Date()
         }
@@ -75,7 +106,7 @@ router.get('/account', (req, res) => {
 router.get('/balance', (req, res) =>{
     tronweb.trx.getBalance(req.body.address).then(response => {
         var resObject = {
-            result:'OK',
+            result:'success',
             data : {
                 balance:response,
                 address:req.body.address,
@@ -111,21 +142,36 @@ router.get('/pending/transaction', (req, res) => {
     QueryForDeposit.getPendingTransaction(req, res);
 });
 
+/**
+ * @Update ::: update all the pending transaction to confirmed if it calls
+ */
+router.post('/update/transaction', (req, res) => {
+    console.log('in update method', req.body._id);
+    QueryForDeposit.updateTransaction(req, res);
+})
 
-
-router.get('/testing', (req, res) => {
-    let taxHash = [];
-    tronweb.trx.getBlockByNumber('3224144').then(item => {
-        
-        for(let key in item.transactions){
-            if(item.transactions[key].raw_data.contract[0].type==='TransferContract'){
-                console.log('hello');
-            }
-        }
-        res.json(item);
-    }).catch(err => {
-        console.log("------", err);
+/**
+ * @Validate :::: To check address is correct or not.
+ */
+router.post('/validate/address', (req, res) => {
+    console.log(req.body.address);
+    axios.post(config.FULL_NODE+'/wallet/validateaddress', {
+        address : req.body.address
+    }).then(item => {
+        // console.log("result", item);
+        res.send(item.data);
+    }).catch((err) => {
+        console.log(err);
     })
+})
+
+/**
+ * @Wallet :::: Information
+ */
+router.get('/wallet/info', (req, res) => {
+    QueryForWalletAddress.findAddress(req.body.address).then(result => {
+        res.json(result);
+    });
 });
 
 /**
@@ -137,6 +183,22 @@ router.get('/health', (req, res) => {
     }
     res.json(responseObject);
 })
+
+
+router.get('/testing', (req, res) => {
+    let taxHash = [];
+    tronweb.trx.getTransactionInfo('29bace57f58cfa3325c0be29733114de57cf6fc428e18e6f7447994e2a16cb1e').then(item => {
+        
+        for(let key in item.transactions){
+            if(item.transactions[key].raw_data.contract[0].type==='TransferContract'){
+                console.log('hello');
+            }
+        }
+        res.json(item);
+    }).catch(err => {
+        console.log("------", err);
+    })
+});
 
 module.exports = router;
 

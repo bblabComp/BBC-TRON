@@ -2,7 +2,7 @@ var mongoose = require("mongoose");
 
 var Schema = mongoose.Schema;
 
-var appServerAlert = new Schema({
+var appStatus = new Schema({
     serverName:String,
     status:String,
     sendTo:String,
@@ -10,4 +10,4 @@ var appServerAlert = new Schema({
     lastModified: Date
 })
 
-module.exports = mongoose.model("appServerAlert", appServerAlert);    
+module.exports = mongoose.model("appStatus", appStatus);    

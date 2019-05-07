@@ -1,7 +1,7 @@
-var Deposit = require('../../model/Deposit');
+var Deposit = require('../../model/Transaction');
 
 exports.postDeposit = (item) => {
-    new Deposit({
+    return new Deposit({
         fromAddress : item.fromAddress,
         toAddress : item.toAddress,
         amount : item.amount,
@@ -17,21 +17,38 @@ exports.postDeposit = (item) => {
     
 }
 
+exports.updateTransaction = (req, res) => {
+    Deposit.updateOne({
+        '_id': req.body._id
+    }, {
+        $set :{
+            'status':'CONFIRMED'
+        }
+    }, function(err, result){
+        var resBody = {
+            result: true,
+            message: 'update successfully'
+        }
+        res.json(resBody);
+    })
+}
+
 exports.getTransaction = () => {
     return new Promise((resolve, reject) => {
-        Deposit.find({status : 'PENDING'}, (err, item) => {
+        Deposit.find({status : 'PENDING'}, {_id:1, fromAddress:1, toAddress:1, amount:1, tranId:1, createdAt:1, lastModified:1}, (err, item) => { 
+            if(err) throw err;
             if(item != null){
                 resolve({
-                    result : 'OK',
+                    result : true,
                     message : 'List of Pending Transaction',
                     size : item.length,
                     data : item
                 });
             }else{
                 reject({
-                    result : 'Fail',
-                    message : 'Someting goes wrong',
-                    data : null
+                    result : false,
+                    message : 'No data present',
+                    data : []
                 });
             }
         });

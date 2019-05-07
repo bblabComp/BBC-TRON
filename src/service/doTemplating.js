@@ -5,7 +5,8 @@ var Promise = require('bluebird')
 let users = [
     {
         name: 'Nitesh kumar',
-        email: 'nitesh9818@gmail.com'
+        subject : 'Tron Node | Server | Alert',
+        email: 'nitesh.kumar@bblab.biz'
     }
 ]
 
@@ -17,5 +18,5 @@ exports.loadTemplate = () => {
         }));
     }).then(() => {
         console.log('Yay!');
-    })
+    });
 }
