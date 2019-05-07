@@ -4,7 +4,7 @@ const config = {
     FULL_NODE: "https://api.shasta.trongrid.io",
     SOLLYDITY_NODE:"https://api.shasta.trongrid.io",
     EVENT_SERVER:"https://api.shasta.trongrid.io",
-    MAIN_URL:"http://localhost:8087/api/v1/tron",
+    MAIN_URL:"http://staging.b-cryptoexchange.com/api/v1/tron",
     ORG_ADDRESS: "TGQ1EuFx8wpPJErtcCYLVigpT8r3kuHDgj"
 }
 
