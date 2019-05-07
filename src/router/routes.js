@@ -3,7 +3,7 @@ var query = require("../repository/AppStatusRepository");
 var QueryForDeposit = require('../repository/TransactionRepository');
 var QueryForWalletAddress = require('../repository/WalletRepository')
 const router = express.Router();
-const config = require("../../config/config");
+const config = require("../../config/"+process.env.ENV_CONFIG);
 const axios = require('axios');
 
 const TronWeb = require("tronweb");

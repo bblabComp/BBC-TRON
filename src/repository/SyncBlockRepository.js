@@ -4,7 +4,7 @@
 
 var Block = require('../../model/SyncBlock');
 const TronWeb = require("tronweb");
-var config = require("../../config/config"); 
+var config = require("../../config/"+process.env.ENV_CONFIG); 
 
 const tronweb = new TronWeb(
     config.FULL_NODE,

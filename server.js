@@ -4,16 +4,13 @@
 
 var express = require("express");
 var mongoose = require("mongoose");
-var axios = require('axios');
 var http = require('http');
 
 var bodyParser = require("body-parser");
-var config = require("./config/config");
+var config = require("./config/"+process.env.ENV_CONFIG);
 var routes = require("./src/router/routes");
-var doTemplating = require('./src/service/doTemplating')
+var transactionService = require('./src/service/TransactionService')
 var syncBlock = require('./src/repository/SyncBlockRepository.js');
-var WalletRepository = require('./src/repository/WalletRepository.js')
-var TransactionRepository = require('./src/repository/TransactionRepository.js')
 var TronWeb = require("tronweb");
 
 const tronweb = new TronWeb(
@@ -50,115 +47,39 @@ mongoose.connect(config.MONGO_URI, function(err){
  * 
  * @Funtionality = fetch all the transaction and save or update our wallets 
  */
-setInterval(function(){
-    tronweb.trx.getCurrentBlock().then(item => {
-        console.log("Block Number on Tron Network ", item.block_header.raw_data.number)
-        //Fetch Last processing block from database
-        syncBlock.fetchNowBlockNum().then((blockNumInDb) => {
+setInterval(async function(){
+    await tronweb.trx.getCurrentBlock().then(item => {
+            console.log("Blockchain Height on Tron Network ", item.block_header.raw_data.number)
+            //Fetch Last processing block from database
+            syncBlock.fetchNowBlockNum().then((blockNumInDb) => {
 
-            console.log("Block Number in Database ", blockNumInDb)
-            var blockDiff = item.block_header.raw_data.number - blockNumInDb;
-            console.log('Number of Block to Sync ', blockDiff)
-            
-            if(blockDiff > 0){
-                let processBlockNum;
-                for(let i = 1; i <= blockDiff; i++){
-                    processBlockNum = blockNumInDb + i; 
-
-                    //Fetching Block Information to check the block is for our address or not
-                    tronweb.trx.getBlock(processBlockNum).then(res => {
-                        for(let key in res.transactions){
-                            var trxns = res.transactions[key].raw_data.contract[0];
-                            if(trxns.type === 'TransferContract'){
-                                console.log(':::: TransferContract :::')
-                                var transactionBody = {
-                                    toAddress: tronweb.address.fromHex(trxns.parameter.value.to_address),
-                                    amount: trxns.parameter.value.amount,
-                                    owner_address: tronweb.address.fromHex(trxns.parameter.value.owner_address),
-                                    processBlockNum : processBlockNum,
-                                    txID : res.transactions[key].txID
-                                }
-                                //Check the address is present in database or not
-                                console.log('::: To Address ::: ',transactionBody.toAddress);
-                                WalletRepository.findAddress(transactionBody.toAddress).then(result => {
-                                    if(result.data!=null){
-                                        tronweb.trx.sendTransaction(config.ORG_ADDRESS, transactionBody.amount, result.data.privateKey).then(result => {
-                                            if(result){
-                                                incomingTransaction(transactionBody);
-                                            }
-                                        }).catch(err => {
-                                            console.log('something goes worng during transfer to organization wallet ::: ', err);
-                                        });
-                                    }
-                                }).catch(err => {
-                                    console.log('Something goes Wrong to find adddres in database ::: ', err);
-                                })
-                            }
-                        }
-                    }).catch(err => {
-                        console.log("something goes worng to find block information ::: ", err);
-                        processBlockNum = processBlockNum - 1;
-                        break;
-                    });
+                console.log("Local Blockchain Height in Database ::: ", blockNumInDb)
+                var behindBlock = item.block_header.raw_data.number - blockNumInDb;
+                console.log('Number of Block to process ::: ', behindBlock)
+                console.log('----------------------------------------------')
+                if(behindBlock > 0){
+                    let processBlockNum;
+                    for(let i = 1; i <= behindBlock; i++){
+                        processBlockNum = blockNumInDb + i;
+                        console.log('Processing Blockchain Number ::: ', processBlockNum);
+                        tronweb.trx.getBlock(processBlockNum).then(response => {
+                            transactionService.processBlock(response, processBlockNum);
+                        }).catch(err => {
+                            console.log('Error Processing Blockchain Number ::: ', processBlockNum);
+                            transactionService.saveBlockNumForLeterProcessing(processBlockNum);
+                        })
+                    }
+                    transactionService.saveNowBlock(processBlockNum, blockNumInDb);
                 }
-                //save block number
-                saveNowBlock(processBlockNum, blockNumInDb);
-            }
-        }).catch((error) => {
-            console.log('something goes wrong during fetch current block from database ::: ', error);
-        });
-        
-    }).catch(err => {
-        console.log('something goes worng to get blockchain height ::: ', err);
-    });   
+            }).catch((error) => {
+                console.log('something goes wrong during fetch current block from database ::: ', error);
+            });
+            
+        }).catch(err => {
+            console.log('something goes worng to get blockchain height ::: ', err);
+        });     
 }, 3000);
 
-/**
-* THREE WAY WE CAN CALL THE EXTERNAL API.
-* @https
-* @axios (to do this, use command to install- npm install axios@0.16.2)
-* @request (to do this, use command to install- npm install request@2.81.0)
-* 
-*/
-function incomingTransaction(transactionBody){
-    console.log('incomming transaction ::: ', config.MAIN_URL+'/deposit/tron');
-    axios.post(config.MAIN_URL+'/deposit/tron', {
-        toAddress : transactionBody.toAddress,
-        fromAddress : transactionBody.owner_address,
-        trxId: transactionBody.txID,
-        amount: transactionBody.amount
-    }).then((res) => {
-        if(res){
-            console.log('deposit tron amount to the user wallet ::::');
-        }
-    }).catch((err) => {
-        var tranInfo = {
-            fromAddress : transactionBody.owner_address,
-            toAddress : transactionBody.toAddress,
-            amount : transactionBody.amount,
-            blockNum : transactionBody.processBlockNum,
-            tranId : transactionBody.txID,
-            status : 'PENDING',
-            createdAt: new Date(),
-            lastModified: new Date()
-        }
-        TransactionRepository.postDeposit(tranInfo);
-        doTemplating.loadTemplate();
-    });
-}
-
-/**
- * @Update The currenct block of tron in database
- */
-function saveNowBlock(nowBlockNum, prevBlockNum){
-    //save now block in db ;
-    syncBlock.updateBlockNum(nowBlockNum, prevBlockNum).then(result => {
-        console.log('-----------------------');
-    }).catch(error => {
-        console.log('Error while saving current block ::: ')
-    });
-}
-// doTemplating.loadTemplate();
 //Port to access the api
 http.createServer(app).listen(config.PORT, function(){
     console.log('Application listing on port', config.PORT);
