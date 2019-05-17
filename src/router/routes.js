@@ -175,6 +175,38 @@ router.get('/wallet/info', (req, res) => {
 });
 
 /**
+ * @Information ::: Populating all the previous address in Mongo db database
+ */
+router.get('/populate/old/address', (req, res) => {
+    axios.get(config.MAIN_URL+'/fetch/address').then(result => {
+        if(result!=null){
+            for(let i = 0; i < result.data.data.length; i++){
+                QueryForWalletAddress.findAddress(result.data.data[i].base58).then((item) => {
+                    if(item.data == null){
+                        var postBody = {
+                            address : result.data.data[i].base58,
+                            hexAddress : tronweb.address.toHex(result.data.data[i].base58),
+                            privateKey : result.data.data[i].privateKey,
+                            publicKey : result.data.data[i].publicKey,
+                            walletType : 'USER',
+                            createAt : new Date(),
+                            lastModified : new Date()
+                        }
+                    
+                        QueryForWalletAddress.postCreateAddressInfo(postBody);
+                    }
+                }).catch(err => {
+                    console.log('in looop ------------')
+                })
+            }
+        }
+        res.send('successfully inserted');
+    }).catch(err => {
+        console.log('something goes wrong fetching address', err);
+    })
+})
+
+/**
  * @Monitoring - Check the server is up or not;
  */
 router.get('/health', (req, res) => {

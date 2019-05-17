@@ -17,8 +17,8 @@ exports.findByWalletAddress = (address) => {
     })
 }
 
-exports.findAddress = (address) => {
-    return this.findByWalletAddress(address).then((element) => {
+exports.findAddress = async (address) => {
+    return await this.findByWalletAddress(address).then((element) => {
         return element;
     }).catch((err) => {
         console.log('something worng in find by wallet address', err);
@@ -26,7 +26,7 @@ exports.findAddress = (address) => {
 }
 
 exports.postCreateAddressInfo = (reqBody) => {
-    new WalletAddress({
+    return new WalletAddress({
         base58address : reqBody.address,
         hexAddress : reqBody.hexAddress,
         privateKey : reqBody.privateKey,
