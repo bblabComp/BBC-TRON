@@ -17,30 +17,49 @@ exports.processBlock = async (res, processBlockNum) => {
         var trxns = res.transactions[key].raw_data.contract[0];
         if(trxns.type === 'TransferContract'){
             console.log(':::: TransferContract :::')
-            var transactionBody = {
-                toAddress: tronweb.address.fromHex(trxns.parameter.value.to_address),
-                amount: trxns.parameter.value.amount,
-                owner_address: tronweb.address.fromHex(trxns.parameter.value.owner_address),
-                processBlockNum : processBlockNum,
-                txID : res.transactions[key].txID
-            }
+            
+            var toAdd = tronweb.address.fromHex(trxns.parameter.value.to_address);
             //Check the address is present in database or not
-            console.log('::: To Address ::: ',transactionBody.toAddress);
-            WalletRepository.findAddress(transactionBody.toAddress).then(result => {
+            console.log('::: To Address ::: ', toAdd);
+            WalletRepository.findAddress(toAdd).then(result => {
                 if(result.data!=null){
-                    tronweb.trx.sendTransaction(config.ORG_ADDRESS, transactionBody.amount, result.data.privateKey).then(result => {
-                        if(result){
-                            incomingTransaction(transactionBody);
-                        }
-                    }).catch(err => {
-                        console.log('something goes worng during transfer to organization wallet ::: ', err);
-                    });
+                    var transactionBody = {
+                        toAddress: toAdd,
+                        amount: trxns.parameter.value.amount,
+                        owner_address: tronweb.address.fromHex(trxns.parameter.value.owner_address),
+                        processBlockNum : processBlockNum,
+                        txID : res.transactions[key].txID
+                    }
+                    checkForBinanceDeposit(transactionBody, result);
                 }
             }).catch(err => {
                 console.log('Something goes Wrong to find adddres in database ::: ', err);
             })
         }
     }
+}
+
+/**
+ * @description this method is to check, direct deposit and withdrawal is unable or not.
+ *              if disable --> send amount to Tron organization wallet.
+ *              and enable --> send amount to Binane Organization wallet.
+ */
+async function checkForBinanceDeposit(transactionBody, addressInfo){
+    return await axios.get(config.MAIN_URL+'/currency/binance/deposit').then((result) => {
+        if(!result.data.isSuccess){
+            tronweb.trx.sendTransaction(config.ORG_ADDRESS, transactionBody.amount, addressInfo.data.privateKey).then(result => {
+                if(result){
+                    incomingTransaction(transactionBody);
+                }
+            }).catch(err => {
+                console.log('something goes worng during transfer to organization wallet ::: ', err);
+            });
+        }else{
+            incomingTransaction(transactionBody);
+        }
+    }).catch((error) => {
+        console.log('something worng during call api ::::', error);
+    });
 }
 
 /**

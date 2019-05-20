@@ -8,8 +8,8 @@ echo 'Success ......'
 # #Tron TestNet url
 # export TRON_URL = https://api.shasta.trongrid.io
 
-# export ENV_CONFIG=config-stag
-export ENV_CONFIG=config-bex-prod
+export ENV_CONFIG=config-stag
+# export ENV_CONFIG=config-bex-prod
 # export ENV_CONFIG=config-tpf-prod
 
 #Tron MainNet url
