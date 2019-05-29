@@ -4,7 +4,7 @@ const config = {
     FULL_NODE: "https://api.trongrid.io",
     SOLLYDITY_NODE:"https://api.trongrid.io",
     EVENT_SERVER:"https://api.trongrid.io",
-    MAIN_URL:"https://www.b-cryptoexchange.com//api/v1/tron",
+    MAIN_URL:"https://www.b-cryptoexchange.com/api/v1/tron",
     ORG_ADDRESS: "bexchange main net address here"
 }
 
