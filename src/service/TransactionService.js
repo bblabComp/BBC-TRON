@@ -22,7 +22,9 @@ exports.processBlock = async (res, processBlockNum) => {
             //Check the address is present in database or not
             console.log('::: To Address ::: ', toAdd);
             WalletRepository.findAddress(toAdd).then(result => {
+                console.log("in find address 1", result)
                 if(result.data!=null){
+                    console.log("in find address value1 ::::: ", result.data);
                     var transactionBody = {
                         toAddress: toAdd,
                         amount: trxns.parameter.value.amount,
