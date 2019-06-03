@@ -2,7 +2,7 @@ var WalletAddress = require('../../model/Wallet');
 
 exports.findByWalletAddress = (address) => {
     return new Promise((resolve, reject) => {
-        WalletAddress.findOne({base58address : address, status : 'USER'}, (err, item) => {
+        WalletAddress.findOne({base58address : address}, (err, item) => {
             if(err){
                 reject({
                     success: false,
