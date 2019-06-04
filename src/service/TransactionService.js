@@ -17,14 +17,10 @@ exports.processBlock = async (res, processBlockNum) => {
         var trxns = res.transactions[key].raw_data.contract[0];
         if(trxns.type === 'TransferContract'){
             console.log(':::: TransferContract :::')
-            
             var toAdd = tronweb.address.fromHex(trxns.parameter.value.to_address);
             //Check the address is present in database or not
-            console.log('::: To Address ::: ', toAdd);
-            WalletRepository.findAddress(toAdd).then(result => {
-                console.log("in find address 1", result)
+            await WalletRepository.findAddress(toAdd).then(result => {
                 if(result.data!=null){
-                    console.log("in find address value1 ::::: ", result.data);
                     var transactionBody = {
                         toAddress: toAdd,
                         amount: trxns.parameter.value.amount,
