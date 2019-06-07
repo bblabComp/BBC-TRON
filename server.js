@@ -50,12 +50,13 @@ mongoose.connect(config.MONGO_URI, function(err){
 setInterval(async () => {
     await tronweb.trx.getCurrentBlock().then(item => {
             console.log("Blockchain Height on Tron Network ", item.block_header.raw_data.number)
+            
             //Fetch Last processing block from database
             syncBlock.fetchNowBlockNum().then((blockNumInDb) => {
-
                 console.log("Local Blockchain Height in Database ::: ", blockNumInDb)
+                
                 var behindBlock = item.block_header.raw_data.number - blockNumInDb;
-                console.log('Number of Block to process ::: ', behindBlock)
+                console.log('Number of Block to Process ::: ', behindBlock)
                 console.log('----------------------------------------------')
                 if(behindBlock > 0){
                     let processBlockNum;
