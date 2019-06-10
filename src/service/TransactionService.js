@@ -17,7 +17,7 @@ exports.processBlock = async (res, processBlockNum) => {
         var trxns = res.transactions[key].raw_data.contract[0];
         if(trxns.type === 'TransferContract'){
             console.log('TransferContract :::')
-            var toAddress = tronweb.address.fromHex(trxns.parameter.value.to_address);
+            var toAddress = await tronweb.address.fromHex(trxns.parameter.value.to_address);
             
             //Check the address is present in database or not
             const userWalletInfo = await WalletRepository.findAddress(toAddress);
@@ -29,9 +29,9 @@ exports.processBlock = async (res, processBlockNum) => {
                     processBlockNum : processBlockNum,
                     txID : res.transactions[key].txID
                 }
-                checkForBinanceDeposit(transactionBody, result);
+                checkForBinanceDeposit(transactionBody, userWalletInfo);
             }else{
-                console.error('Error While getting user Wallet Information', userWalletInfo.err)
+                console.error('Address Not Found in our Local database ::: ', userWalletInfo.err)
             }
         }
     }
@@ -44,7 +44,8 @@ exports.processBlock = async (res, processBlockNum) => {
  */
 async function checkForBinanceDeposit(transactionBody, addressInfo){
     const result = await axios.get(config.MAIN_URL+'/currency/binance/deposit');
-    if(!result.data.isSuccess){
+    console.log("check for binance deposit ::: ", result);
+    if(result.status == 200 && !result.data.isSuccess){
         tronweb.trx.sendTransaction(config.ORG_ADDRESS, transactionBody.amount, addressInfo.data.privateKey).then(result => {
             if(result){
                 incomingTransaction(transactionBody);
@@ -97,8 +98,8 @@ async function incomingTransaction(transactionBody){
  */
 exports.saveNowBlock = async (nowBlockNum, prevBlockNum) => {
     //save now block in db ;
-    await syncBlock.updateBlockNum(nowBlockNum, prevBlockNum).then(result => {
-        console.log('-----------------------');
+    return await syncBlock.updateBlockNum(nowBlockNum, prevBlockNum).then(result => {
+        return result;
     }).catch(error => {
         console.log('Error while saving current block ::: ')
     });

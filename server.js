@@ -46,39 +46,51 @@ mongoose.connect(config.MONGO_URI, function(err){
  * @Second - Save into our database
  * 
  * @Funtionality = fetch all the transaction and save or update our wallets 
+ * @INFO ::: variable methodInExecution is just a flag to identify the function is already occupied.
+ *      if occupied then wail until its complete his execution. 
  */
+let methodInExecution = 0; 
 setInterval(async () => {
-    await tronweb.trx.getCurrentBlock().then(item => {
-            console.log("Blockchain Height on Tron Network ", item.block_header.raw_data.number)
-            
-            //Fetch Last processing block from database
-            syncBlock.fetchNowBlockNum().then((blockNumInDb) => {
-                console.log("Local Blockchain Height in Database ::: ", blockNumInDb)
-                
-                var behindBlock = item.block_header.raw_data.number - blockNumInDb;
-                console.log('Number of Block to Process ::: ', behindBlock)
-                console.log('----------------------------------------------')
-                if(behindBlock > 0){
-                    let processBlockNum;
-                    for(let i = 1; i <= behindBlock; i++){
-                        processBlockNum = blockNumInDb + i;
-                        console.log('Processing Blockchain Number ::: ', processBlockNum);
-                        tronweb.trx.getBlock(processBlockNum).then(response => {
-                            transactionService.processBlock(response, processBlockNum);
-                        }).catch(err => {
-                            console.log('Error Processing Blockchain Number ::: ', processBlockNum);
-                            transactionService.saveBlockNumForLeterProcessing(processBlockNum);
-                        })
+    if(methodInExecution == 0){
+        methodInExecution = 1;
+        const result = await tronweb.trx.getCurrentBlock();
+        if(result!=null){
+            let blockchainHeight = result.block_header.raw_data.number;
+            console.log("Blockchain Height ", blockchainHeight)
+            let localBlockchainHeight = await new Promise((resolve, reject) => {
+                syncBlock.fetchNowBlockNum().then((item) => {
+                    if(item != null){
+                        resolve(item);
                     }
-                    transactionService.saveNowBlock(processBlockNum, blockNumInDb);
-                }
-            }).catch((error) => {
-                console.log('something goes wrong during fetch current block from database ::: ', error);
+                }).catch((err) => {
+                    reject(null)
+                });
             });
-            
-        }).catch(err => {
-            console.log('something goes worng to get blockchain height ::: ', err);
-        });     
+            console.log('Local Blockchain Height ::: ', localBlockchainHeight)
+            var blockBehind = blockchainHeight - localBlockchainHeight;
+            console.log('Block Behind By ::: ', blockBehind);
+            if(blockBehind > 0){
+                let processBlockNum = 0;
+                for(let i = 1; i <= blockBehind; i++){
+                    processBlockNum = localBlockchainHeight + i;
+                    let processBlockData = await tronweb.trx.getBlock(processBlockNum);
+                    if(processBlockData != null){
+                        console.log('Processing Blockchain Number ::: ', processBlockNum);
+                        transactionService.processBlock(processBlockData, processBlockNum);
+                    }else{
+                        console.log('Error Processing Blockchain Number ::: ', processBlockNum);
+                        console.log('---------------------', err)
+                        transactionService.saveNowBlock(processBlockNum - 1, localBlockchainHeight);
+                        break;
+                    }
+                }
+                transactionService.saveNowBlock(processBlockNum, localBlockchainHeight);
+            }
+        }else{
+            console.log('Something went wrong to get Blockchain Height ::: ', err);
+        }
+        methodInExecution = 0;
+    }   
 }, 3000);
 
 //Port to access the api
