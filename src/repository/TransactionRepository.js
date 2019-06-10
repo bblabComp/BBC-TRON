@@ -1,5 +1,21 @@
 var Deposit = require('../../model/Transaction');
 
+exports.findByTxnId = (trxId) => {
+    return new Promise((resolve, reject) => {
+        Deposit.findOne({tranId : trxId}, (err, result) => {
+            if(err){
+                reject({
+                    data : null
+                })
+            }else{
+                resolve({
+                    data : result
+                })
+            }
+        });
+    });
+}
+
 exports.postDeposit = (item) => {
     return new Deposit({
         fromAddress : item.fromAddress,

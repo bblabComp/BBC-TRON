@@ -43,19 +43,23 @@ exports.processBlock = async (res, processBlockNum) => {
  *              and enable --> send amount to Binane Organization wallet.
  */
 async function checkForBinanceDeposit(transactionBody, addressInfo){
-    const result = await axios.get(config.MAIN_URL+'/currency/binance/deposit');
-    console.log("check for binance deposit ::: ", result);
-    if(result.status == 200 && !result.data.isSuccess){
-        tronweb.trx.sendTransaction(config.ORG_ADDRESS, transactionBody.amount, addressInfo.data.privateKey).then(result => {
-            if(result){
-                incomingTransaction(transactionBody);
-            }
-        }).catch(err => {
-            console.log('Error While Transfering Amount to Organization Wallet ::: ', err);
-        });
-    }else{
-        incomingTransaction(transactionBody);
-    }
+    await axios.get(config.MAIN_URL+'/currency/binance/deposit').then(result => {
+        console.log("check for binance deposit ::: ", result);
+        if(result.status == 200 && !result.data.isSuccess){
+            tronweb.trx.sendTransaction(config.ORG_ADDRESS, transactionBody.amount, addressInfo.data.privateKey).then(result => {
+                if(result){
+                    incomingTransaction(transactionBody);
+                }
+            }).catch(err => {
+                console.log('Error While Transfering Amount to Organization Wallet ::: ', err);
+            });
+        }else{
+            incomingTransaction(transactionBody);
+        }
+    }).catch(err => {
+        saveUserIncomingTrxInMongoDb(transactionBody);
+    });
+    
 }
 
 /**
@@ -67,30 +71,18 @@ async function checkForBinanceDeposit(transactionBody, addressInfo){
 */
 async function incomingTransaction(transactionBody){
     console.log('Process Incomming Transaction ::: ', config.MAIN_URL+'/deposit/tron');
-    const result = await axios.post(config.MAIN_URL+'/deposit/tron', {
+    await axios.post(config.MAIN_URL+'/deposit/tron', {
         toAddress : transactionBody.toAddress,
         fromAddress : transactionBody.owner_address,
         tranId: transactionBody.txID,
         amount: transactionBody.amount
-    });
-    if(result.status == 200){
-        console.log("Amount Deposit to the user wallet ::: Success");
-    }else{
-        console.log("Error While Deposit Amount in user wallet ::: ", result.err);
-        var tranInfo = {
-            fromAddress : transactionBody.owner_address,
-            toAddress : transactionBody.toAddress,
-            amount : transactionBody.amount,
-            blockNum : transactionBody.processBlockNum,
-            tranId : transactionBody.txID,
-            status : 'PENDING',
-            createdAt: new Date(),
-            lastModified: new Date()
+    }).then(result => {
+        if(result != null){
+            console.log("Amount Deposit to the user wallet ::: Success");
         }
-        const item = TransactionRepository.postDeposit(tranInfo);
-        doTemplating.loadTemplate();
-        return item;
-    }
+    }).catch(err => {
+        saveUserIncomingTrxInMongoDb(transactionBody);
+    });
 }
 
 /**
@@ -103,6 +95,31 @@ exports.saveNowBlock = async (nowBlockNum, prevBlockNum) => {
     }).catch(error => {
         console.log('Error while saving current block ::: ')
     });
+}
+
+function saveUserIncomingTrxInMongoDb(transactionBody){
+    TransactionRepository.findByTxnId(transactionBody.txID).then(result => {
+        if(result.data == null){
+            console.log("Error While Deposit Amount in user wallet ::: ", result.data);
+            var tranInfo = {
+                fromAddress : transactionBody.owner_address,
+                toAddress : transactionBody.toAddress,
+                amount : transactionBody.amount,
+                blockNum : transactionBody.processBlockNum,
+                tranId : transactionBody.txID,
+                status : 'PENDING',
+                createdAt: new Date(),
+                lastModified: new Date()
+            }
+            const item = TransactionRepository.postDeposit(tranInfo);
+            doTemplating.loadTemplate();
+            return item;
+        }else{
+            console.log('Transation id already exit ::: ');
+        }
+    }).catch(err => {
+        console.log('Error while finding exiting Transaction ::: ')
+    })
 }
 
 /**
