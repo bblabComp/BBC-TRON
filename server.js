@@ -79,7 +79,6 @@ setInterval(async () => {
                         transactionService.processBlock(processBlockData, processBlockNum);
                     }else{
                         console.log('Error Processing Blockchain Number ::: ', processBlockNum);
-                        console.log('---------------------', err)
                         transactionService.saveNowBlock(processBlockNum - 1, localBlockchainHeight);
                         break;
                     }
