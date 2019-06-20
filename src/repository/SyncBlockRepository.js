@@ -99,7 +99,10 @@ exports.updateBlockNum = (currentBlockNum, preBlockNum) => {
             console.log('Update Current Block to ', currentBlockNum);
             return true;
         }
-    })
+    }).catch(err => {
+        console.error('Error while updating processing block')
+        return false;
+    });
 }
 /**---------------------------------------------------------------------------------------------------------------- */
 

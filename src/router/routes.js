@@ -162,7 +162,7 @@ router.post('/validate/address', (req, res) => {
         res.send(item.data);
     }).catch((err) => {
         console.log(err);
-    })
+    });
 })
 
 /**
