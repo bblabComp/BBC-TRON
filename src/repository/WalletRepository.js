@@ -29,9 +29,7 @@ exports.postCreateAddressInfo = (reqBody) => {
     return new WalletAddress({
         base58address : reqBody.address,
         hexAddress : reqBody.hexAddress,
-        privateKey : reqBody.privateKey,
-        publicKey : reqBody.publicKey,
-        walletType : reqBody.walletType,
+        addressType : reqBody.addressType,
         createAt : reqBody.createAt,
         lastModified : reqBody.lastModified
     }).save((err, res) => {

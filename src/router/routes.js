@@ -42,9 +42,7 @@ router.get('/create/user/address', (req, res) => {
         var item = {
             address : response.address.base58,
             hexAddress : response.address.hex,
-            privateKey : response.privateKey,
-            publicKey : response.publicKey,
-            walletType : 'USER',
+            addressType : 'USER_ADDRESSER',
             createAt : new Date(),
             lastModified : new Date()
         }
@@ -71,9 +69,7 @@ router.get('/create/organization/address', (req, res) => {
         var item = {
             address : response.address.base58,
             hexAddress : response.address.hex,
-            privateKey : response.privateKey,
-            publicKey : response.publicKey,
-            walletType : 'MAIN',
+            addressType : 'ORG_ADDRESS',
             createAt : new Date(),
             lastModified : new Date()
         }
@@ -128,7 +124,6 @@ router.post('/balance', (req, res) =>{
  */
 router.post('/withdrawalTrx', (req, res) => {
     tronweb.trx.sendTransaction(req.body.to, req.body.amount, req.body.privateKey).then(response => {
-        console.log('---', req.body.privateKey);
         res.json(response);
     }).catch(error => {
         console.log(error);
@@ -154,11 +149,9 @@ router.post('/update/transaction', (req, res) => {
  * @Validate :::: To check address is correct or not.
  */
 router.post('/validate/address', (req, res) => {
-    console.log(req.body.address);
     axios.post(config.FULL_NODE+'/wallet/validateaddress', {
         address : req.body.address
     }).then(item => {
-        // console.log("result", item);
         res.send(item.data);
     }).catch((err) => {
         console.log(err);
@@ -173,38 +166,6 @@ router.get('/wallet/info', (req, res) => {
         res.json(result);
     });
 });
-
-/**
- * @Information ::: Populating all the previous address in Mongo db database
- */
-router.get('/populate/old/address', (req, res) => {
-    axios.get(config.MAIN_URL+'/fetch/address').then(result => {
-        if(result!=null){
-            for(let i = 0; i < result.data.data.length; i++){
-                QueryForWalletAddress.findAddress(result.data.data[i].base58).then((item) => {
-                    if(item.data == null){
-                        var postBody = {
-                            address : result.data.data[i].base58,
-                            hexAddress : tronweb.address.toHex(result.data.data[i].base58),
-                            privateKey : result.data.data[i].privateKey,
-                            publicKey : result.data.data[i].publicKey,
-                            walletType : 'USER',
-                            createAt : new Date(),
-                            lastModified : new Date()
-                        }
-                    
-                        QueryForWalletAddress.postCreateAddressInfo(postBody);
-                    }
-                }).catch(err => {
-                    console.log('in looop ------------')
-                })
-            }
-        }
-        res.send('successfully inserted');
-    }).catch(err => {
-        console.log('something goes wrong fetching address', err);
-    })
-})
 
 /**
  * @Monitoring - Check the server is up or not;
