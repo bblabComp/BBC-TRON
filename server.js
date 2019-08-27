@@ -48,47 +48,43 @@ mongoose.connect(config.MONGO_URI, function(err){
  * @Funtionality = fetch all the transaction and save or update our wallets 
  * @INFO ::: variable methodInExecution is just a flag to identify the function is already occupied.
  *      if occupied then wail until its complete his execution. 
+ * @Status tells that the setInterval function is already in execution state or not.
+ * @CurrentBlock defines the number of block currently have on tron blockchain server.
+ * @currentBlockNumber accept block number of tron block chain server.
+ * @currentSyncBlockNumber block number which is in syncBlock database table.
+ * @blockBehind number of block behind by the current block of the tron server.
+ * @blockInfo getting block information from the tron server.
  */
-let methodInExecution = 0; 
+let status = false; 
 setInterval(async () => {
-    if(methodInExecution == 0){
-        methodInExecution = 1;
-        const result = await tronweb.trx.getCurrentBlock();
-        if(result!=null){
-            let blockchainHeight = result.block_header.raw_data.number;
-            console.log("Blockchain Height ", blockchainHeight)
-            let localBlockchainHeight = await new Promise((resolve, reject) => {
-                syncBlock.fetchNowBlockNum().then((item) => {
-                    if(item != null){
-                        resolve(item);
-                    }
+    if(!status){
+        status = true;
+        const currentBlock = await tronweb.trx.getCurrentBlock();
+        currentBlock ? () => {
+            let currentBlockNumber = currentBlock.block_header.raw_data.number;
+            let currentSyncBlockNumber = await new Promise((resolve, reject) => {
+                syncBlock.getCurrentSyncBlockNumber().then((item) => {
+                    item ? resolve(item) : reject(null);
                 }).catch((err) => {
-                    reject(null)
-                });
+                    reject(null);
+                })
             });
-            console.log('Local Blockchain Height ::: ', localBlockchainHeight)
-            var blockBehind = blockchainHeight - localBlockchainHeight;
-            console.log('Block Behind By ::: ', blockBehind);
-            if(blockBehind > 0){
-                let processBlockNum = 0;
-                for(let i = 1; i <= blockBehind; i++){
-                    processBlockNum = localBlockchainHeight + i;
-                    let processBlockData = await tronweb.trx.getBlock(processBlockNum);
-                    if(processBlockData != null){
-                        console.log('Processing Blockchain Number ::: ', processBlockNum);
-                        transactionService.processBlock(processBlockData, processBlockNum);
-                    }else{
-                        console.log('Error Processing Blockchain Number ::: ', processBlockNum);
-                        transactionService.saveNowBlock(processBlockNum - 1, localBlockchainHeight);
-                        break;
-                    }
+            let blockBehind = currentBlockNumber - currentSyncBlockNumber;
+            console.log("Number of block on tron server - ", currentBlockNumber);
+            console.log("Number of syncing block on our server - ", currentSyncBlockNumber);
+            console.log("Number of block behind from the tron server - ", blockBehind);
+
+            blockBehind > 0 ? () => {
+                console.log("in block behind condition.")
+                for(let block = 1; block <= blockBehind; block++){
+                    console.log("in if -", block)
+                    let blockInfo = await tronweb.trx.getBlock(currentSyncBlockNumber + block);
+                    blockInfo ? transactionService.processBlock(processBlockData, processBlockNum) : console.log("Block information null.")
                 }
-                transactionService.saveNowBlock(processBlockNum, localBlockchainHeight);
-            }
-        }else{
-            console.log('Something went wrong to get Blockchain Height ::: ', err);
-        }
-        methodInExecution = 0;
+                syncBlock.updateBlockNumInDb(currentSyncBlockNumber + blockBehind,  currentSyncBlockNumber);
+            } : console.log("No transaction available for our user.");
+        } : console.log("Something goes worng with the tron server.");
+        status = false;
     }   
 }, 3000);
 

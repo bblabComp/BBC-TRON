@@ -29,7 +29,7 @@ exports.getDbNowBlock = () => {
                 tronweb.trx.getCurrentBlock().then(nowBlock => {
                     var firstBlock = {
                         id : item.id,
-                        blockNum: nowBlock.block_header.raw_data.number,
+                        blockNumber: nowBlock.block_header.raw_data.number,
                         status : 'DONE',
                     }
                     this.postNowBlock(firstBlock);
@@ -53,7 +53,7 @@ exports.getDbNowBlock = () => {
     });
 }
 
-exports.fetchNowBlockNum = () => {
+exports.getCurrentSyncBlockNumber = () => {
     return this.getDbNowBlock().then((response) => { 
         return response.data[0].blockNum;
     }).catch(error => {
@@ -65,13 +65,13 @@ exports.fetchNowBlockNum = () => {
 /**
  * @Description - Update the Document whenever new block is added in the tron network.
  */
-updateBlockNumInDb = (currentBlockNum, prevBlockNum) => {
+exports.updateBlockNumInDb = (currentBlockNum, prevBlockNum) => {
     return new Promise((resolve, reject) => {
         Block.updateOne({
             "blockNum" : prevBlockNum
         }, { 
             $set: {
-                "blockNum": currentBlockNum,
+                "blockNumber": currentBlockNum,
                 "lastModified": new Date()
             }
         }, function(err, results){
@@ -92,18 +92,6 @@ updateBlockNumInDb = (currentBlockNum, prevBlockNum) => {
     });
 }
 
-exports.updateBlockNum = (currentBlockNum, preBlockNum) => {
-    return updateBlockNumInDb(currentBlockNum, preBlockNum).then(item => {
-        if(item != null){
-            console.log('-----------------------');
-            console.log('Update Current Block to ', currentBlockNum);
-            return true;
-        }
-    }).catch(err => {
-        console.error('Error while updating processing block')
-        return false;
-    });
-}
 /**---------------------------------------------------------------------------------------------------------------- */
 
 exports.postNowBlock = (item) => {

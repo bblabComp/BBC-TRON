@@ -3,7 +3,7 @@ var mongoose = require("mongoose");
 var Schema = mongoose.Schema;
 
 var syncBlock = new Schema({
-    blockNum:Number,
+    blockNumber:Number,
     status:String,
     createdAt: Date,
     lastModified: Date

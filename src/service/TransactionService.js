@@ -3,7 +3,6 @@ var config = require('../../config/'+process.env.ENV_CONFIG)
 var syncBlock = require('../repository/SyncBlockRepository');
 var WalletRepository = require('../repository/WalletRepository.js')
 var TransactionRepository = require('../repository/TransactionRepository.js')
-var UnSyncBlock = require('../repository/UnSyncBlockRepository');
 var TronWeb = require("tronweb");
 var axios = require('axios');
 
@@ -15,51 +14,29 @@ const tronweb = new TronWeb(
 exports.processBlock = async (res, processBlockNum) => {
     for(let key in res.transactions){
         var trxns = res.transactions[key].raw_data.contract[0];
-        if(trxns.type === 'TransferContract'){
-            console.log('TransferContract :::')
+        trxns.type === 'TransferContract' ? () => {
+            console.log("in transfer contract.")
+            var fromAddress = await tronweb.address.fromHex(trxns.parameter.value.owner_address);
             var toAddress = await tronweb.address.fromHex(trxns.parameter.value.to_address);
-            
-            //Check the address is present in database or not
-            const userWalletInfo = await WalletRepository.findAddress(toAddress);
-            if(userWalletInfo.data!=null){
-                var transactionBody = {
-                    toAddress: toAddress,
-                    amount: trxns.parameter.value.amount,
-                    owner_address: tronweb.address.fromHex(trxns.parameter.value.owner_address),
-                    processBlockNum : processBlockNum,
-                    txID : res.transactions[key].txID
-                }
-                checkForBinanceDeposit(transactionBody, userWalletInfo);
-            }else{
-                console.error('Address Not Found in our Local database ::: ', userWalletInfo.err)
-            }
-        }
+            const userWallet = axios.get(config.MAIN_URL+`/walletAddress?address=${toAddress}`);
+            userWallet._embedded.walletAddress.length ? () => {
+                tronweb.trx.sendTransaction(config.ORG_ADDRESS, transactionBody.amount, config.PRIVATE_KEY).then(result => {
+                    if(result){
+                        var depositDto = {
+                            fromAddress: fromAddress,
+                            toAddress: toAddress,
+                            amount: trxns.parameter.value.amount,
+                            transactionHash : res.transactions[key].txID
+                        }
+                        incomingTransaction(depositDto);
+                    }
+                }).catch(err => {
+                    console.log('Error While Transfering Amount to Organization Wallet ::: ', err);
+                });
+            } : console.log("User wallet is not found.");
+        
+        } : console.log("fine.")
     }
-}
-
-/**
- * @description this method is to check, direct deposit and withdrawal is unable or not.
- *              if disable --> send amount to Tron organization wallet.
- *              and enable --> send amount to Binane Organization wallet.
- */
-async function checkForBinanceDeposit(transactionBody, addressInfo){
-    await axios.get(config.MAIN_URL+'/currency/binance/deposit').then(result => {
-        console.log("check for binance deposit ::: ", result);
-        if(result.status == 200 && !result.data.isSuccess){
-            tronweb.trx.sendTransaction(config.ORG_ADDRESS, transactionBody.amount, addressInfo.data.privateKey).then(result => {
-                if(result){
-                    incomingTransaction(transactionBody);
-                }
-            }).catch(err => {
-                console.log('Error While Transfering Amount to Organization Wallet ::: ', err);
-            });
-        }else{
-            incomingTransaction(transactionBody);
-        }
-    }).catch(err => {
-        saveUserIncomingTrxInMongoDb(transactionBody);
-    });
-    
 }
 
 /**
@@ -69,14 +46,9 @@ async function checkForBinanceDeposit(transactionBody, addressInfo){
 * @request (to do this, use command to install- npm install request@2.81.0)
 * 
 */
-async function incomingTransaction(transactionBody){
+async function incomingTransaction(depositDto){
     console.log('Process Incomming Transaction ::: ', config.MAIN_URL+'/deposit/tron');
-    await axios.post(config.MAIN_URL+'/deposit/tron', {
-        toAddress : transactionBody.toAddress,
-        fromAddress : transactionBody.owner_address,
-        tranId: transactionBody.txID,
-        amount: transactionBody.amount
-    }).then(result => {
+    await axios.post(config.MAIN_URL+'/deposit/tron', depositDto).then(result => {
         if(result != null){
             console.log("Amount Deposit to the user wallet ::: Success");
         }
@@ -85,57 +57,24 @@ async function incomingTransaction(transactionBody){
     });
 }
 
-/**
- * @Update The currenct block of tron in database
- */
-exports.saveNowBlock = async (nowBlockNum, prevBlockNum) => {
-    //save now block in db ;
-    return await syncBlock.updateBlockNum(nowBlockNum, prevBlockNum).then(result => {
-        return result;
-    }).catch(error => {
-        console.log('Error while saving current block ::: ')
-    });
-}
-
-function saveUserIncomingTrxInMongoDb(transactionBody){
-    TransactionRepository.findByTxnId(transactionBody.txID).then(result => {
+function saveUserIncomingTrxInMongoDb(depositDto){
+    TransactionRepository.findByTxnId(depositDto.transactionHash).then(result => {
         if(result.data == null){
             console.log("Error While Deposit Amount in user wallet ::: ", result.data);
             var tranInfo = {
-                fromAddress : transactionBody.owner_address,
-                toAddress : transactionBody.toAddress,
-                amount : transactionBody.amount,
-                blockNum : transactionBody.processBlockNum,
-                tranId : transactionBody.txID,
+                fromAddress : depositDto.owner_address,
+                toAddress : depositDto.toAddress,
+                amount : depositDto.amount,
+                transactionHash : depositDto.transactionHash,
                 status : 'PENDING',
                 createdAt: new Date(),
                 lastModified: new Date()
             }
-            const item = TransactionRepository.postDeposit(tranInfo);
-            doTemplating.loadTemplate();
-            return item;
+            return TransactionRepository.postDeposit(tranInfo);
         }else{
             console.log('Transation id already exit ::: ');
         }
     }).catch(err => {
         console.log('Error while finding exiting Transaction ::: ')
     })
-}
-
-/**
- * @Update The currenct block of tron in database
- */
-exports.saveBlockNumForLeterProcessing = async (height) => {
-    //save now block in db ;
-    var item = {
-        blockNum: height,
-        status:'PENDING'
-    }
-    const result = await UnSyncBlock.postUnSyncBlock(item);
-    if(result != null){
-        console.log('Save Block number for letter processing ');
-        return result;
-    }else{
-        console.log('Error while saving current block ::: ')
-    }
 }

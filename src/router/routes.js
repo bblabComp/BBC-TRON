@@ -1,5 +1,4 @@
 const express = require('express');
-var query = require("../repository/AppStatusRepository");
 var QueryForDeposit = require('../repository/TransactionRepository');
 var QueryForWalletAddress = require('../repository/WalletRepository')
 const router = express.Router();
@@ -67,6 +66,7 @@ router.get('/create/user/address', (req, res) => {
             Private key, Public key, address
 */
 router.get('/create/organization/address', (req, res) => {
+    console.log("create organization --------------")
     tronweb.createAccount().then(response => {
         var item = {
             address : response.address.base58,
@@ -103,7 +103,7 @@ router.get('/account', (req, res) => {
  * @Balance : To check the balance in wallet
  * @Param : need Address
  */
-router.get('/balance', (req, res) =>{
+router.post('/balance', (req, res) =>{
     tronweb.trx.getBalance(req.body.address).then(response => {
         var resObject = {
             result:'success',

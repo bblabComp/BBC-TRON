@@ -6,8 +6,7 @@ var transaction = new Schema({
     fromAddress : String,
     toAddress : String,
     amount : Number,
-    blockNum : Number,
-    tranId : String,
+    transactionHash : String,
     status : ['PENDING', 'COMPLETED'],
     createdAt: Date,
     lastModified: Date
