@@ -5,7 +5,7 @@ const config = {
     SOLLYDITY_NODE:"https://api.shasta.trongrid.io",
     EVENT_SERVER:"https://api.shasta.trongrid.io",
     MAIN_URL:"http://localhost:8060/api/v1/coin",
-    ORG_ADDRESS: "TTv3NmV4osfy2r48Hxf69uzt5sUsWv2Be6",
+    ORG_ADDRESS: "TEsBGpDtK12pxQ2pzGHfVgumt5TwCkBmXT",
     PRIVATE_KEY:""
 }
 

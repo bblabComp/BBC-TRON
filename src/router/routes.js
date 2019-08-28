@@ -38,6 +38,7 @@ router.get('/nowBlock', function(req, res){
             Private key, Public key, address
 */
 router.get('/create/user/address', (req, res) => {
+    console.log('in user wallet creation');
     tronweb.createAccount().then(response => {
         var item = {
             address : response.address.base58,
