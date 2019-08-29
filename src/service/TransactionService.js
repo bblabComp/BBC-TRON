@@ -1,7 +1,4 @@
-var doTemplating = require('./doTemplating')
 var config = require('../../config/'+process.env.ENV_CONFIG)
-var syncBlock = require('../repository/SyncBlockRepository');
-var WalletRepository = require('../repository/WalletRepository.js')
 var TransactionRepository = require('../repository/TransactionRepository.js')
 var TronWeb = require("tronweb");
 var axios = require('axios');
@@ -23,12 +20,17 @@ exports.processBlock = async (processBlockInfo) => {
 }
 
 const processBlockData = async (processBlockInfo, trxns, key) => {
-    console.log("in transfer contract.")
     var fromAddress = await tronweb.address.fromHex(trxns.parameter.value.owner_address);
     var toAddress = await tronweb.address.fromHex(trxns.parameter.value.to_address);
-    console.log('to Address ---', toAddress);
     var amount = trxns.parameter.value.amount;
 
+    //prepare data.
+    var depositDto = {
+        fromAddress: fromAddress,
+        toAddress: toAddress,
+        amount: amount,
+        transactionHash : processBlockInfo.transactions[key].txID
+    }
     //Validate toAddress from our exchange database.
     await axios.get('http://localhost:8060/api/v1/coin/walletAddress/search/address', {
         params: {
@@ -37,15 +39,13 @@ const processBlockData = async (processBlockInfo, trxns, key) => {
         }
     }).then(userWallet => {
         if(userWallet.data.address !== null){
-            var depositDto = {
-                fromAddress: fromAddress,
-                toAddress: toAddress,
-                amount: amount,
-                transactionHash : processBlockInfo.transactions[key].txID
-            }
+            console.log('Incoming Transaction for Address ---', toAddress);
             sendTransationToOrganization(depositDto, userWallet.data.userPrivateKey);
         }
     }).catch(err => {
+        if(err.code === 'ECONNREFUSED'){
+            onConnectionRefusedTransaction(depositDto);
+        }
         console.log("Address is not present in b-exchange database.");
     })
     
@@ -58,7 +58,6 @@ const processBlockData = async (processBlockInfo, trxns, key) => {
  * @param {*} userPrivateKey 
  */
 const sendTransationToOrganization = async (depositDto, userPrivateKey) => {
-    console.log(userPrivateKey);
     await tronweb.trx.sendTransaction(config.ORG_ADDRESS, depositDto.amount, userPrivateKey).then(result => {
         if(result !== null){
             incomingTransaction(depositDto);
@@ -66,6 +65,24 @@ const sendTransationToOrganization = async (depositDto, userPrivateKey) => {
     }).catch(err => {
         console.log('Error While Transfering Amount to Organization Wallet ::: ', err);
     });
+}
+
+/**
+ * @Important : this method is call when the connection is refused during validate address.
+ * so when the connection is esteblished, again we process transaction.
+ * @param {} depositDto 
+ */
+const onConnectionRefusedTransaction = async (depositDto) => {
+    var tranInfo = {
+        fromAddress : depositDto.fromAddress,
+        toAddress : depositDto.toAddress,
+        amount : depositDto.amount,
+        transactionHash : depositDto.transactionHash,
+        status : 'ECONNREFUSED',
+        createdAt: new Date(),
+        lastModified: new Date()
+    }
+    return TransactionRepository.postDeposit(tranInfo);
 }
 /**
  * 
@@ -92,7 +109,7 @@ async function incomingTransaction(depositDto){
  * @param {*} depositDto 
  */
 function saveUserIncomingTrxInMongoDb(depositDto){
-    TransactionRepository.findByTxnId(depositDto.transactionHash).then(result => {
+    TransactionRepository.findByTxnHash(depositDto.transactionHash).then(result => {
         if(result.data == null){
             var tranInfo = {
                 fromAddress : depositDto.fromAddress,
@@ -110,4 +127,38 @@ function saveUserIncomingTrxInMongoDb(depositDto){
     }).catch(err => {
         console.log('Error while finding exiting Transaction ::: ')
     })
+}
+
+/**
+ * @Important : this function is used to get the pending transaction and send to the bexchange server for saving information
+ * for the user transaction.
+ * @see : it is used in set interval function.
+ */
+exports.processPendingTransaction = async () => {
+    return new Promise((resolve, rejcect) => {
+        TransactionRepository.getTransaction('PENDING').then(item => {
+            if(item){
+                for(let k = 0; k < item.data.length; k++){
+                    axios.post('http://localhost:8060/api/v1/coin/deposit/tron', {
+                        fromAddress: item.data[k].fromAddress,
+                        toAddress: item.data[k].toAddress,
+                        amount: item.data[k].amount,
+                        transactionHash : item.data[k].transactionHash 
+                    }).then(result => {
+                        if(result.data.status){
+                            TransactionRepository.updateTransaction(item.data[k]._id, 'COMPLETED');
+                        }
+                    }).catch(err => {
+                        if(err.code === 'ECONNREFUSED'){
+                            console.log('something goes worng during pending transaction.', err.code)
+                        }
+                    });
+                }
+                resolve(true);
+            }
+            rejcect(false);
+        }).catch(err => {
+            console.log('No Pending transaction.')
+        });
+    });
 }
