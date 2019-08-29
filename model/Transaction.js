@@ -7,7 +7,7 @@ var transaction = new Schema({
     toAddress : String,
     amount : Number,
     transactionHash : String,
-    status : ['PENDING', 'COMPLETED'],
+    status : ['PENDING', 'COMPLETED', 'ECONNREFUSED', 'ADDRESS_NOT_FOUND'],
     createdAt: Date,
     lastModified: Date
 });
