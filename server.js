@@ -102,7 +102,19 @@ setInterval(async () => {
     if(!transactionStatus){
         transactionStatus = true;
         const result = await transactionService.processPendingTransaction();
-        console.log(result);
+        transactionStatus = false;
+    }
+}, 2000);
+
+/**
+ * @Important :: this setInterval function is used to process the pending transaction.
+ * -------------------------------------------------
+ */
+let transactionStatus = false;
+setInterval(async () => {
+    if(!transactionStatus){
+        transactionStatus = true;
+        const result = await transactionService.getEconnRefusedTransaction();
         transactionStatus = false;
     }
 }, 2000);

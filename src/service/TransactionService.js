@@ -162,3 +162,47 @@ exports.processPendingTransaction = async () => {
         });
     });
 }
+
+/**
+ * @Important :: In this method we collect all the transaction which is 'ECONNREFUSED' and try to process again.
+ * First validating address.
+ */
+exports.getEconnRefusedTransaction = async () => {
+    return new Promise((resolve, rejcect) => {
+        TransactionRepository.getTransaction('ECONNREFUSED').then((item) => {
+            if(item){
+                for(let k = 0; k < item.data.length; k++){
+                    axios.get('http://localhost:8060/api/v1/coin/walletAddress/search/address', {
+                        params: {
+                            address: item.data[k].toAddress,
+                            projection: "userAddressWithPrivateKey"
+                        }
+                    }).then(res => {
+                        if(res.data){
+                            axios.post('http://localhost:8060/api/v1/coin/deposit/tron', {
+                                fromAddress: item.data[k].fromAddress,
+                                toAddress: item.data[k].toAddress,
+                                amount: item.data[k].amount,
+                                transactionHash : item.data[k].transactionHash 
+                            }).then(result => {
+                                if(result.data.status){
+                                    TransactionRepository.updateTransaction(item.data[k]._id, 'COMPLETED');
+                                }
+                            }).catch(err => {
+                                if(err.code === 'ECONNREFUSED'){
+                                    console.log('something goes worng during pending transaction.', err.code)
+                                }
+                            });
+                        }
+                    }).catch(err => {
+                        console.log(err);
+                    })
+                }
+                resolve(true)
+            } 
+            rejcect(false);
+        }).catch((err) => {
+            console.log(err);
+        })
+    });
+}
