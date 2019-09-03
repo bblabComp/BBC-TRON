@@ -10,12 +10,14 @@ var bodyParser = require("body-parser");
 var config = require("./config/" + process.env.ENV_CONFIG);
 var routes = require("./src/router/routes");
 var transactionService = require('./src/service/TransactionService')
+var tronService = require('./src/service/TronService')
 var syncBlock = require('./src/repository/SyncBlockRepository.js');
 var TronWeb = require("tronweb");
 
 const tronweb = new TronWeb(
     config.FULL_NODE,
-    config.SOLLYDITY_NODE
+    config.SOLLYDITY_NODE,
+    config.EVENT_SERVER
 );
 
 mongoose.Promise = global.Promise;
@@ -56,14 +58,14 @@ mongoose.connect(config.MONGO_URI, function (err) {
  * @blockInfo getting block information from the tron server.
  */
 let status = false;
-setInterval(async () => {
-    if (!status) {
-        status = true;
-        const currentBlock = await tronweb.trx.getCurrentBlock();
-        await currentBlock ? filterTransaction(currentBlock) : console.log("Something goes worng with the tron server.");
-        status = false;
-    }
-}, 3000);
+// setInterval(async () => {
+//     if (!status) {
+//         status = true;
+//         const currentBlock = await tronweb.trx.getCurrentBlock();
+//         await currentBlock ? filterTransaction(currentBlock) : console.log("Something goes worng with the tron server.");
+//         status = false;
+//     }
+// }, 3000);
 
 const filterTransaction = async (currentBlock) => {
     let currentBlockNumber = currentBlock.block_header.raw_data.number;
@@ -95,29 +97,44 @@ const processingBlockNumber = async (currentSyncBlockNumber, blockBehind) => {
 
 /**
  * @Important :: this setInterval function is used to process the pending transaction.
+ * when transaction status is 'PENDING'
  * -------------------------------------------------
  */
 let transactionStatus = false;
 setInterval(async () => {
     if(!transactionStatus){
         transactionStatus = true;
-        const result = await transactionService.processPendingTransaction();
+        await tronService.processPendingTransaction();
         transactionStatus = false;
     }
 }, 2000);
 
 /**
  * @Important :: this setInterval function is used to process the pending transaction.
+ * when transaction status is 'ECONNREFUSED'
  * -------------------------------------------------
  */
-let transactionStatus = false;
+let trxnStatus = false;
 setInterval(async () => {
-    if(!transactionStatus){
-        transactionStatus = true;
-        const result = await transactionService.getEconnRefusedTransaction();
-        transactionStatus = false;
+    if(!trxnStatus){
+        trxnStatus = true;
+        await tronService.getEconnRefusedTransaction();
+        trxnStatus = false;
     }
 }, 2000);
+
+/**
+ * @important :: This interval is used to check, there is any transaction for organization wallet
+ * and there is any transaction then it will call the SERVER to insert incoming transaction history.
+ */
+let timestampStatus = false;
+setInterval(async () => {
+    if(!timestampStatus){
+        timestampStatus = true;
+        tronService.processTransactionForOrganization();
+        timestampStatus = false;   
+    }
+}, 3000)
 
 //Port to access the api
 http.createServer(app).listen(config.PORT, function () {

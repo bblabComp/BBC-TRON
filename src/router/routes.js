@@ -43,7 +43,7 @@ router.get('/create/user/address', (req, res) => {
         var item = {
             address : response.address.base58,
             hexAddress : response.address.hex,
-            addressType : 'USER_ADDRESSER',
+            addressType : 'USER_ADDRESS',
             createAt : new Date(),
             lastModified : new Date()
         }
@@ -125,6 +125,7 @@ router.post('/balance', (req, res) =>{
  */
 router.post('/withdrawalTrx', (req, res) => {
     tronweb.trx.sendTransaction(req.body.to, req.body.amount, req.body.privateKey).then(response => {
+        console.log("response ----", JSON.stringify(response));
         res.json(response);
     }).catch(error => {
         console.log(error);
@@ -185,6 +186,29 @@ router.get('/testing', (req, res) => {
         console.log("------", err);
     })
 });
+
+router.get('/transaction/info', (req, res) => {
+    console.log('in transaction information....')
+    // tronweb.trx.getTransactionsToAddress("TY25dyeYC5rAaywHePuwZs97jXLqHaDoZU", 30, 0).then(result => {
+    //     console.log(JSON.stringify(result));
+    //     res.json(result)
+    // }).catch(err => {
+    //     console.log(err);
+    // })
+
+    console.log(Date.now() - 60000);
+    axios.get('https://api.shasta.trongrid.io/v1/accounts/TY25dyeYC5rAaywHePuwZs97jXLqHaDoZU/transactions', {
+        params : {
+            only_to: true,
+            only_confirmed: true,
+            min_timestamp: Date.now() - 60000 // from a minute ago to go on
+        }
+    }).then(result => {
+        res.json(result.data);
+    }).catch(err => {
+        console.log(err)
+    });
+})
 
 module.exports = router;
 
