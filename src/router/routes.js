@@ -9,8 +9,7 @@ const TronWeb = require("tronweb");
 
 const tronweb = new TronWeb(
     config.FULL_NODE,
-    config.SOLLYDITY_NODE,
-    config.EVENT_SERVER
+    config.SOLLYDITY_NODE
 );
 
 /**
@@ -20,7 +19,6 @@ const tronweb = new TronWeb(
  */
 router.get('/nowBlock', function(req, res){
     tronweb.trx.getCurrentBlock((err, response) => {
-        
         if(err){
             console.log("getting error", err)
         }else{
@@ -38,7 +36,6 @@ router.get('/nowBlock', function(req, res){
             Private key, Public key, address
 */
 router.get('/create/user/address', (req, res) => {
-    console.log('in user wallet creation');
     tronweb.createAccount().then(response => {
         var item = {
             address : response.address.base58,
@@ -48,6 +45,7 @@ router.get('/create/user/address', (req, res) => {
             lastModified : new Date()
         }
         QueryForWalletAddress.postCreateAddressInfo(item);
+        console.log('Tron user wallet create successfully......');
         res.send(response)
     }).catch(error => {
         var returnObject = {
@@ -65,8 +63,8 @@ router.get('/create/user/address', (req, res) => {
             Private key, Public key, address
 */
 router.get('/create/organization/address', (req, res) => {
-    console.log("create organization --------------")
     tronweb.createAccount().then(response => {
+        console.log("data ------------", response);
         var item = {
             address : response.address.base58,
             hexAddress : response.address.hex,
@@ -75,6 +73,7 @@ router.get('/create/organization/address', (req, res) => {
             lastModified : new Date()
         }
         QueryForWalletAddress.postCreateAddressInfo(item);
+        console.log('Tron organization wallet create successfully......');
         res.send(response)
     }).catch(error => {
         var returnObject = {
@@ -125,7 +124,7 @@ router.post('/balance', (req, res) =>{
  */
 router.post('/withdrawalTrx', (req, res) => {
     tronweb.trx.sendTransaction(req.body.to, req.body.amount, req.body.privateKey).then(response => {
-        console.log("response ----", JSON.stringify(response));
+        console.log("Withdrawal amount "+req.body.amount+" from "+req.body.fromAddress);
         res.json(response);
     }).catch(error => {
         console.log(error);
@@ -188,15 +187,6 @@ router.get('/testing', (req, res) => {
 });
 
 router.get('/transaction/info', (req, res) => {
-    console.log('in transaction information....')
-    // tronweb.trx.getTransactionsToAddress("TY25dyeYC5rAaywHePuwZs97jXLqHaDoZU", 30, 0).then(result => {
-    //     console.log(JSON.stringify(result));
-    //     res.json(result)
-    // }).catch(err => {
-    //     console.log(err);
-    // })
-
-    console.log(Date.now() - 60000);
     axios.get('https://api.shasta.trongrid.io/v1/accounts/TY25dyeYC5rAaywHePuwZs97jXLqHaDoZU/transactions', {
         params : {
             only_to: true,

@@ -1,7 +1,6 @@
 /**
  * @author Nitesh kumar
  */
-
 var express = require("express");
 var mongoose = require("mongoose");
 var http = require('http');
@@ -19,9 +18,7 @@ const tronweb = new TronWeb(
     config.SOLLYDITY_NODE,
     config.EVENT_SERVER
 );
-
 mongoose.Promise = global.Promise;
-
 var app = express();
 app.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -40,8 +37,16 @@ app.use("/api/v1/tron", routes);
 mongoose.connect(config.MONGO_URI, function (err) {
     if (err) throw err;
     else console.log("connection successfully");
-})
+});
 
+//Port to access the api
+http.createServer(app).listen(config.PORT, function () {
+    console.log('Application listing on port', config.PORT);
+});
+
+module.exports = app;
+
+/** ------------------------------------------------------------------------------------------------------------------------------------------------ */
 /**
  * Set Interval for saving incoming transaction
  * @First - fetch current blockNum from tron server
@@ -58,14 +63,14 @@ mongoose.connect(config.MONGO_URI, function (err) {
  * @blockInfo getting block information from the tron server.
  */
 let status = false;
-// setInterval(async () => {
-//     if (!status) {
-//         status = true;
-//         const currentBlock = await tronweb.trx.getCurrentBlock();
-//         await currentBlock ? filterTransaction(currentBlock) : console.log("Something goes worng with the tron server.");
-//         status = false;
-//     }
-// }, 3000);
+setInterval(async () => {
+    if (!status) {
+        status = true;
+        const currentBlock = await tronweb.trx.getCurrentBlock();
+        await currentBlock ? filterTransaction(currentBlock) : console.log("Something goes worng with the tron server.");
+        status = false;
+    }
+}, 3000);
 
 const filterTransaction = async (currentBlock) => {
     let currentBlockNumber = currentBlock.block_header.raw_data.number;
@@ -74,7 +79,7 @@ const filterTransaction = async (currentBlock) => {
             item ? resolve(item) : reject(null);
         }).catch((err) => {
             reject(null);
-        })
+        });
     });
     let blockBehind = currentBlockNumber - currentSyncBlockNumber;
     console.log("Number of block on tron server - ", currentBlockNumber);
@@ -94,11 +99,13 @@ const processingBlockNumber = async (currentSyncBlockNumber, blockBehind) => {
     });
     flag ? syncBlock.updateBlockNumInDb(currentSyncBlockNumber + blockBehind, currentSyncBlockNumber) : console.log('Something goes wrong.');
 }
+/** ---------------------------------------------------------------------------------------------------------------------------------------------- */
+
+
 
 /**
  * @Important :: this setInterval function is used to process the pending transaction.
  * when transaction status is 'PENDING'
- * -------------------------------------------------
  */
 let transactionStatus = false;
 setInterval(async () => {
@@ -112,7 +119,6 @@ setInterval(async () => {
 /**
  * @Important :: this setInterval function is used to process the pending transaction.
  * when transaction status is 'ECONNREFUSED'
- * -------------------------------------------------
  */
 let trxnStatus = false;
 setInterval(async () => {
@@ -123,22 +129,15 @@ setInterval(async () => {
     }
 }, 2000);
 
-/**
- * @important :: This interval is used to check, there is any transaction for organization wallet
- * and there is any transaction then it will call the SERVER to insert incoming transaction history.
- */
-let timestampStatus = false;
-setInterval(async () => {
-    if(!timestampStatus){
-        timestampStatus = true;
-        tronService.processTransactionForOrganization();
-        timestampStatus = false;   
-    }
-}, 3000)
-
-//Port to access the api
-http.createServer(app).listen(config.PORT, function () {
-    console.log('Application listing on port', config.PORT);
-});
-
-module.exports = app;
+// /**
+//  * @important :: This interval is used to check, there is any transaction for organization wallet
+//  * and there is any transaction then it will call the SERVER to insert incoming transaction history.
+//  */
+// let timestampStatus = false;
+// setInterval(async () => {
+//     if(!timestampStatus){
+//         timestampStatus = true;
+//         tronService.processTransactionForOrganization();
+//         timestampStatus = false;   
+//     }
+// }, 3000)

@@ -76,37 +76,42 @@ const tronDepositApi = async (depositDto) => {
     });
 }
 
-exports.processTransactionForOrganization = async () => {
-    TrxTimestampRepostory.lastProcessTimestamp().then((item) => {
-        if(item.data !== null){
-            axios.get('https://api.shasta.trongrid.io/v1/accounts/TQ2dm59AycSoiV2wzNFWGtYapjM79yVyxq/transactions', {
-                params : {
-                    only_to: true,
-                    only_confirmed: true,
-                    min_timestamp: item.data[0].lastProcessTimestamp // from a minute ago to go on
-                }
-            }).then(result => {
-                if(result.data.data.length){
-                    var depositDto = [];
-                    for(let m = 0; m < result.data.data.length; m++){
-                        depositDto.push({
-                            fromAddress: tronweb.address.fromHex(result.data.data[m].raw_data.contract[0].parameter.value.owner_address),
-                            toAddress: tronweb.address.fromHex(result.data.data[m].raw_data.contract[0].parameter.value.to_address),
-                            amount: result.data.data[m].raw_data.contract[0].parameter.value.amount,
-                            transactionHash : result.data.data[m].txID
-                        });
-                    }
-                    this.tronDepositApiForOrganization(depositDto);
-                }
-            }).catch(err => {
-                console.log(err);
-            });
-        }
-    }).catch((err) => {
-        console.log(err);
-    })
-}
+// exports.processTransactionForOrganization = async () => {
+//     TrxTimestampRepostory.lastProcessTimestamp().then((item) => {
+//         if(item.data !== null){
+//             axios.get('https://api.shasta.trongrid.io/v1/accounts/TY25dyeYC5rAaywHePuwZs97jXLqHaDoZU/transactions', {
+//                 params : {
+//                     only_to: true,
+//                     only_confirmed: true,
+//                     min_timestamp: item.data[0].lastProcessTimestamp // from a minute ago to go on
+//                 }
+//             }).then(result => {
+//                 if(result.data.data.length){
+//                     var depositDto = [];
+//                     for(let m = 0; m < result.data.data.length; m++){
+//                         depositDto.push({
+//                             fromAddress: tronweb.address.fromHex(result.data.data[m].raw_data.contract[0].parameter.value.owner_address),
+//                             toAddress: tronweb.address.fromHex(result.data.data[m].raw_data.contract[0].parameter.value.to_address),
+//                             amount: result.data.data[m].raw_data.contract[0].parameter.value.amount,
+//                             transactionHash : result.data.data[m].txID
+//                         });
+//                     }
+//                     this.tronDepositApiForOrganization(depositDto);
+//                 }
+//             }).catch(err => {
+//                 console.log(err);
+//             });
+//         }
+//     }).catch((err) => {
+//         console.log(err);
+//     })
+// }
 
-const tronDepositApiForOrganization = (depositDto) => {
-    //to do api call to update organization history
-}
+// const tronDepositApiForOrganization = async (depositDto) => {
+//     await axios.post('http://localhost:8060/api/v1/coin/save/organization/transactions', depositDto).then(result => {
+//         console.log(result);
+//     }).catch(err => {
+//         console.log(err);
+//     })
+//     //to do api call to update organization history
+// }
