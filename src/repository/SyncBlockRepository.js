@@ -16,7 +16,7 @@ const tronweb = new TronWeb(
  * @Desc - Get The last block we had processed.
  * 
  */
-exports.getDbNowBlock = () => {
+exports.getDbNowBlock = (blockNumberOnTronServer) => {
     return new Promise((resolve, reject) => {
         Block.find({}, (err, item) => {
             if(err){
@@ -25,22 +25,19 @@ exports.getDbNowBlock = () => {
                     msg: "Something went wrong"
                 });
             }else if(item == null || item.length == 0){
-                
-                tronweb.trx.getCurrentBlock().then(nowBlock => {
-                    var firstBlock = {
-                        id : item.id,
-                        blockNum: nowBlock.block_header.raw_data.number,
-                        status : 'DONE',
-                    }
-                    this.postNowBlock(firstBlock);
-                    resolve({
-                        success: true,
-                        msg: "alert Status",
-                        data:firstBlock
-                    })
-                }).catch(err => {
-                    console.log(err);
-                });
+                console.log('item is null');
+                var firstBlock = {
+                    blockNumber: blockNumberOnTronServer,
+                    status : 'DONE',
+                    createdAt: new Date(),
+                    lastModified: new Date()
+                }
+                this.postNowBlock(firstBlock);
+                resolve({
+                    success: true,
+                    msg: "alert Status",
+                    data:firstBlock
+                })
             }else{
                 resolve({
                     success: true,
@@ -53,9 +50,9 @@ exports.getDbNowBlock = () => {
     });
 }
 
-exports.fetchNowBlockNum = () => {
-    return this.getDbNowBlock().then((response) => { 
-        return response.data[0].blockNum;
+exports.getCurrentSyncBlockNumber = async (blockNumberOnTronServer) => {
+    return await this.getDbNowBlock(blockNumberOnTronServer).then((response) => { 
+        return response.data[0].blockNumber;
     }).catch(error => {
         console.log(error);
     });
@@ -65,17 +62,17 @@ exports.fetchNowBlockNum = () => {
 /**
  * @Description - Update the Document whenever new block is added in the tron network.
  */
-updateBlockNumInDb = (currentBlockNum, prevBlockNum) => {
+exports.updateBlockNumInDb = (currentBlockNum, prevBlockNum) => {
     return new Promise((resolve, reject) => {
         Block.updateOne({
-            "blockNum" : prevBlockNum
+            blockNumber : prevBlockNum
         }, { 
             $set: {
-                "blockNum": currentBlockNum,
-                "lastModified": new Date()
+                blockNumber: currentBlockNum,
+                lastModified: new Date()
             }
         }, function(err, results){
-            if(err) throw err;
+            if(err) console.log('error---------------------', err);
             if(results!=null){
                 resolve({
                     success: true,
@@ -92,29 +89,16 @@ updateBlockNumInDb = (currentBlockNum, prevBlockNum) => {
     });
 }
 
-exports.updateBlockNum = (currentBlockNum, preBlockNum) => {
-    return updateBlockNumInDb(currentBlockNum, preBlockNum).then(item => {
-        if(item != null){
-            console.log('-----------------------');
-            console.log('Update Current Block to ', currentBlockNum);
-            return true;
-        }
-    }).catch(err => {
-        console.error('Error while updating processing block')
-        return false;
-    });
-}
 /**---------------------------------------------------------------------------------------------------------------- */
 
 exports.postNowBlock = (item) => {
     if(item!=null){
         new Block({
-            blockNum:item.blockNum,
+            blockNumber:item.blockNumber,
             status : item.status,
             createdAt: new Date(),
             lastModified: new Date()
         }).save((err, res) => {
-            
             if(err){
                 console.log('get some error', err);
             }

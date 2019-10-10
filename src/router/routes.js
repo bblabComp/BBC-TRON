@@ -1,5 +1,4 @@
 const express = require('express');
-var query = require("../repository/AppStatusRepository");
 var QueryForDeposit = require('../repository/TransactionRepository');
 var QueryForWalletAddress = require('../repository/WalletRepository')
 const router = express.Router();
@@ -10,8 +9,7 @@ const TronWeb = require("tronweb");
 
 const tronweb = new TronWeb(
     config.FULL_NODE,
-    config.SOLLYDITY_NODE,
-    config.EVENT_SERVER
+    config.SOLLYDITY_NODE
 );
 
 /**
@@ -21,7 +19,6 @@ const tronweb = new TronWeb(
  */
 router.get('/nowBlock', function(req, res){
     tronweb.trx.getCurrentBlock((err, response) => {
-        
         if(err){
             console.log("getting error", err)
         }else{
@@ -43,13 +40,12 @@ router.get('/create/user/address', (req, res) => {
         var item = {
             address : response.address.base58,
             hexAddress : response.address.hex,
-            privateKey : response.privateKey,
-            publicKey : response.publicKey,
-            walletType : 'USER',
+            addressType : 'USER_ADDRESS',
             createAt : new Date(),
             lastModified : new Date()
         }
         QueryForWalletAddress.postCreateAddressInfo(item);
+        console.log('Tron user wallet create successfully......');
         res.send(response)
     }).catch(error => {
         var returnObject = {
@@ -68,16 +64,16 @@ router.get('/create/user/address', (req, res) => {
 */
 router.get('/create/organization/address', (req, res) => {
     tronweb.createAccount().then(response => {
+        console.log("data ------------", response);
         var item = {
             address : response.address.base58,
             hexAddress : response.address.hex,
-            privateKey : response.privateKey,
-            publicKey : response.publicKey,
-            walletType : 'MAIN',
+            addressType : 'ORG_ADDRESS',
             createAt : new Date(),
             lastModified : new Date()
         }
         QueryForWalletAddress.postCreateAddressInfo(item);
+        console.log('Tron organization wallet create successfully......');
         res.send(response)
     }).catch(error => {
         var returnObject = {
@@ -103,7 +99,7 @@ router.get('/account', (req, res) => {
  * @Balance : To check the balance in wallet
  * @Param : need Address
  */
-router.get('/balance', (req, res) =>{
+router.post('/wallet/balance', (req, res) =>{
     tronweb.trx.getBalance(req.body.address).then(response => {
         var resObject = {
             result:'success',
@@ -126,9 +122,9 @@ router.get('/balance', (req, res) =>{
  *               -Private key (need private key of the user account)
  * @Important : - Without Private key of wallet we can't able to send the TRX
  */
-router.post('/withdrawalTrx', (req, res) => {
+router.post('/withdrawal/coin/tron', (req, res) => {
     tronweb.trx.sendTransaction(req.body.to, req.body.amount, req.body.privateKey).then(response => {
-        console.log('---', req.body.privateKey);
+        console.log("Withdrawal amount "+req.body.amount+" from "+req.body.fromAddress);
         res.json(response);
     }).catch(error => {
         console.log(error);
@@ -143,22 +139,12 @@ router.get('/pending/transaction', (req, res) => {
 });
 
 /**
- * @Update ::: update all the pending transaction to confirmed if it calls
- */
-router.post('/update/transaction', (req, res) => {
-    console.log('in update method', req.body._id);
-    QueryForDeposit.updateTransaction(req, res);
-})
-
-/**
  * @Validate :::: To check address is correct or not.
  */
 router.post('/validate/address', (req, res) => {
-    console.log(req.body.address);
     axios.post(config.FULL_NODE+'/wallet/validateaddress', {
         address : req.body.address
     }).then(item => {
-        // console.log("result", item);
         res.send(item.data);
     }).catch((err) => {
         console.log(err);
@@ -173,38 +159,6 @@ router.get('/wallet/info', (req, res) => {
         res.json(result);
     });
 });
-
-/**
- * @Information ::: Populating all the previous address in Mongo db database
- */
-router.get('/populate/old/address', (req, res) => {
-    axios.get(config.MAIN_URL+'/fetch/address').then(result => {
-        if(result!=null){
-            for(let i = 0; i < result.data.data.length; i++){
-                QueryForWalletAddress.findAddress(result.data.data[i].base58).then((item) => {
-                    if(item.data == null){
-                        var postBody = {
-                            address : result.data.data[i].base58,
-                            hexAddress : tronweb.address.toHex(result.data.data[i].base58),
-                            privateKey : result.data.data[i].privateKey,
-                            publicKey : result.data.data[i].publicKey,
-                            walletType : 'USER',
-                            createAt : new Date(),
-                            lastModified : new Date()
-                        }
-                    
-                        QueryForWalletAddress.postCreateAddressInfo(postBody);
-                    }
-                }).catch(err => {
-                    console.log('in looop ------------')
-                })
-            }
-        }
-        res.send('successfully inserted');
-    }).catch(err => {
-        console.log('something goes wrong fetching address', err);
-    })
-})
 
 /**
  * @Monitoring - Check the server is up or not;
@@ -231,6 +185,20 @@ router.get('/testing', (req, res) => {
         console.log("------", err);
     })
 });
+
+router.get('/transaction/info', (req, res) => {
+    axios.get('https://api.shasta.trongrid.io/v1/accounts/TY25dyeYC5rAaywHePuwZs97jXLqHaDoZU/transactions', {
+        params : {
+            only_to: true,
+            only_confirmed: true,
+            min_timestamp: Date.now() - 60000 // from a minute ago to go on
+        }
+    }).then(result => {
+        res.json(result.data);
+    }).catch(err => {
+        console.log(err)
+    });
+})
 
 module.exports = router;
 

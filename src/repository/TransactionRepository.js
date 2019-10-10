@@ -1,8 +1,8 @@
 var Deposit = require('../../model/Transaction');
 
-exports.findByTxnId = (trxId) => {
+exports.findByTxnHash = (transactionHash) => {
     return new Promise((resolve, reject) => {
-        Deposit.findOne({tranId : trxId}, (err, result) => {
+        Deposit.findOne({transactionHash : transactionHash}, (err, result) => {
             if(err){
                 reject({
                     data : null
@@ -21,8 +21,7 @@ exports.postDeposit = (item) => {
         fromAddress : item.fromAddress,
         toAddress : item.toAddress,
         amount : item.amount,
-        blockNum : item.blockNum,
-        tranId : item.tranId,
+        transactionHash : item.transactionHash,
         status : 'PENDING',
         createdAt: new Date(),
         lastModified: new Date()
@@ -33,25 +32,25 @@ exports.postDeposit = (item) => {
     
 }
 
-exports.updateTransaction = (req, res) => {
-    Deposit.updateOne({
-        '_id': req.body._id
+exports.updateTransaction = async (_id, status) => {
+    return await Deposit.updateOne({
+        '_id': _id
     }, {
         $set :{
-            'status':'CONFIRMED'
+            'status': status
         }
     }, function(err, result){
         var resBody = {
             result: true,
             message: 'update successfully'
         }
-        res.json(resBody);
+       return resBody;
     })
 }
 
-exports.getTransaction = () => {
+exports.getTransaction = (transactionStatus) => {
     return new Promise((resolve, reject) => {
-        Deposit.find({status : 'PENDING'}, {_id:1, fromAddress:1, toAddress:1, amount:1, tranId:1, createdAt:1, lastModified:1}, (err, item) => { 
+        Deposit.find({status : transactionStatus}, {_id:1, fromAddress:1, toAddress:1, amount:1, transactionHash:1, createdAt:1, lastModified:1}, (err, item) => { 
             if(err) throw err;
             if(item != null){
                 resolve({

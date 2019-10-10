@@ -1,16 +1,14 @@
-
-echo 'Reading Environment .........'
-echo 'Success ......'
-# export orgWallet = TGQ1EuFx8wpPJErtcCYLVigpT8r3kuHDgj
-
-# export MAIN_URL = http://localhost:8087/api/v1/tron
-
-# #Tron TestNet url
-# export TRON_URL = https://api.shasta.trongrid.io
-
-# export ENV_CONFIG=config-stag
-export ENV_CONFIG=config-bex-prod
+export ENV_CONFIG=config-stag
+# export ENV_CONFIG=config-bex-prod
 # export ENV_CONFIG=config-tpf-prod
+
+echo 'Starting Tron-Application'
+sleep 2s
+echo 'The following configuration are active:'+ENV_CONFIG
+sleep 1s
+echo 'Finish :Scanning Database configuration and repository.'
+sleep 1s
+echo 'TronApplication initialized with port(s): '6001' (http)'
 
 #Tron MainNet url
 # export TRON_URL = https://api.trongrid.io
