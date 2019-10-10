@@ -35,12 +35,16 @@ const processBlockData = async (processBlockInfo, trxns, key) => {
     await axios.get('http://localhost:8060/api/v1/coin/walletAddress/search/address', {
         params: {
             address: toAddress,
-            projection: "userAddressWithPrivateKey"
+            projection: "userAddressForTron"
         }
     }).then(userWallet => {
         if(userWallet.data.address !== null){
             console.log('Incoming Transaction for Address ---', toAddress);
-            sendTransationToOrganization(depositDto, userWallet.data.userPrivateKey);
+            if (!userWallet.data.InBinanceDeposit){
+                sendTransationToOrganization(depositDto, userWallet.data.userPrivateKey);
+            }else {
+                incomingTransaction(depositDto);
+            }
         }
     }).catch(err => {
         if(err.code === 'ECONNREFUSED'){

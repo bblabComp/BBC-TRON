@@ -99,7 +99,7 @@ router.get('/account', (req, res) => {
  * @Balance : To check the balance in wallet
  * @Param : need Address
  */
-router.post('/balance', (req, res) =>{
+router.post('/wallet/balance', (req, res) =>{
     tronweb.trx.getBalance(req.body.address).then(response => {
         var resObject = {
             result:'success',
@@ -122,7 +122,7 @@ router.post('/balance', (req, res) =>{
  *               -Private key (need private key of the user account)
  * @Important : - Without Private key of wallet we can't able to send the TRX
  */
-router.post('/withdrawalTrx', (req, res) => {
+router.post('/withdrawal/coin/tron', (req, res) => {
     tronweb.trx.sendTransaction(req.body.to, req.body.amount, req.body.privateKey).then(response => {
         console.log("Withdrawal amount "+req.body.amount+" from "+req.body.fromAddress);
         res.json(response);
